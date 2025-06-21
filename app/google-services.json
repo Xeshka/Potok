@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "260886291248",
+    "project_id": "cumuloflow-91e01",
+    "storage_bucket": "cumuloflow-91e01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:260886291248:android:3d84ef9e27050a99079ef5",
+        "android_client_info": {
+          "package_name": "ru.kolesnik.potok.demo.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrgySL89mj2OGrRHTJgiLjs5WLuJZ0_Z8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

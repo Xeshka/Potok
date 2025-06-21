@@ -1,0 +1,38 @@
+[
+  {
+    "employeeNumber": "449927",
+    "timezone": "3",
+    "terBank": "ЦА",
+    "employeeId": "449927",
+    "lastName": "Колесник",
+    "firstName": "Никита",
+    "middleName": "Сергеевич",
+    "position": "Главный инженер по разработке",
+    "avatar": "/api/service-addressbook/api/v1/addressbook/employee/449927/userphoto.jpeg",
+    "mainEmail": "NSKolesnik@sberbank.ru",
+    "hrInfo": {
+      "position": "Главный инженер по разработке",
+      "department": "Группа разработки",
+      "departmentId": "",
+      "departmentTree": "",
+      "departmentIdTree": ""
+    },
+    "workSchedule": {
+      "startDate": "0",
+      "endDate": "0",
+      "days": "01110"
+    },
+    "emails": [
+      {
+        "type": "Internal",
+        "address": "NSKolesnik@omega.sbrf.ru",
+        "isMain": false
+      },
+      {
+        "type": "External",
+        "address": "NSKolesnik@sberbank.ru",
+        "isMain": true
+      }
+    ]
+  }
+]
