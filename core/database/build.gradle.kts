@@ -11,8 +11,10 @@ android {
 
 dependencies {
     api(projects.core.model)
+    api(projects.core.network)
 
     implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlinx.serialization.json)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)

@@ -1,6 +1,5 @@
 package ru.kolesnik.potok.core.network.di
 
-import android.annotation.SuppressLint
 import android.util.Log
 import androidx.tracing.trace
 import dagger.Module
@@ -29,7 +28,7 @@ import ru.kolesnik.potok.core.network.BuildConfig
 import ru.kolesnik.potok.core.network.cookie.InMemoryCookieStore
 import ru.kolesnik.potok.core.network.cookie.JavaNetCookieJar
 import ru.kolesnik.potok.core.network.model.customSerializersModule
-import ru.kolesnik.potok.core.network.retrofit.RetrofitSyncFullNetworkApi
+import ru.kolesnik.potok.core.network.retrofit.AuthApi
 import ru.kolesnik.potok.core.network.ssl.AppSSLFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -39,7 +38,7 @@ import javax.inject.Singleton
 private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 
 class AuthAuthenticator(
-    private val apiProvider: dagger.Lazy<RetrofitSyncFullNetworkApi>
+    private val apiProvider: dagger.Lazy<AuthApi>
 ) : Authenticator {
     private var attemptCount = 0
 
@@ -83,7 +82,7 @@ internal object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthenticator(
-        apiProvider: dagger.Lazy<RetrofitSyncFullNetworkApi>
+        apiProvider: dagger.Lazy<AuthApi>
     ): Authenticator = AuthAuthenticator(apiProvider)
 
     @Provides
@@ -100,13 +99,13 @@ internal object NetworkModule {
     fun provideRetrofitSyncFullNetworkApi(
         callFactory: Call.Factory,
         networkJson: Json
-    ): RetrofitSyncFullNetworkApi {
+    ): AuthApi {
         return Retrofit.Builder()
             .baseUrl(RANDM_BASE_URL)
             .callFactory(callFactory)
             .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
             .build()
-            .create(RetrofitSyncFullNetworkApi::class.java)
+            .create(AuthApi::class.java)
     }
 
     @Provides

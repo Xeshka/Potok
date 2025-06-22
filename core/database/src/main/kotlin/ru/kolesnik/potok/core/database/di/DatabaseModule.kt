@@ -15,11 +15,11 @@ import javax.inject.Singleton
 internal object DatabaseModule {
     @Provides
     @Singleton
-    fun providesRandmDatabase(
+    fun providesPotokTaskDatabase(
         @ApplicationContext context: Context,
     ): AppDatabase = Room.databaseBuilder(
         context,
         AppDatabase::class.java,
-        "rand-database",
+        "potok-task-database",
     ).build()
 }

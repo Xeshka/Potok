@@ -1,28 +1,44 @@
 package ru.kolesnik.potok.core.database.dao
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
-import ru.kolesnik.potok.core.database.model.LifeFlowEntity
+import androidx.room.*
+import ru.kolesnik.potok.core.database.entitys.FlowStatus
 
-// LifeFlowDao.kt
+import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
+
+import java.util.UUID
+
 @Dao
 interface LifeFlowDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateFlow(flow: LifeFlowEntity)
+    suspend fun insert(flow: LifeFlowEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(flows: List<LifeFlowEntity>)
+
+    @Update
+    suspend fun update(flow: LifeFlowEntity)
 
     @Delete
-    suspend fun deleteFlow(flow: LifeFlowEntity)
+    suspend fun delete(flow: LifeFlowEntity)
 
-    @Query("SELECT * FROM life_flows WHERE area_id = :areaId ORDER BY placement ASC")
-    fun getFlowsForArea(areaId: String): Flow<List<LifeFlowEntity>>
+    @Query("DELETE FROM life_flows WHERE areaId = :areaId")
+    suspend fun deleteByAreaId(areaId: UUID)
 
-    @Query("SELECT * FROM life_flows WHERE id = :flowId")
-    suspend fun getFlowById(flowId: String): LifeFlowEntity?
+    @Query("DELETE FROM life_flows")
+    suspend fun deleteAll()
 
-    @Query("DELETE FROM life_flows WHERE area_id = :areaId")
-    suspend fun deleteAllFlowsForArea(areaId: String)
+    @Query("SELECT * FROM life_flows WHERE id = :id")
+    suspend fun getById(id: UUID): LifeFlowEntity?
+
+    @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
+    suspend fun getByAreaId(areaId: UUID): List<LifeFlowEntity>
+
+    @Query("SELECT * FROM life_flows WHERE status = :status")
+    suspend fun getByStatus(status: FlowStatus): List<LifeFlowEntity>
+
+    @Query("SELECT * FROM life_flows WHERE areaId = :areaId AND status = :status")
+    suspend fun getByAreaAndStatus(areaId: UUID, status: FlowStatus): List<LifeFlowEntity>
+
+    @Query("UPDATE life_flows SET placement = :newPosition WHERE id = :flowId")
+    suspend fun updatePosition(flowId: UUID, newPosition: Int)
 }

@@ -1,56 +1,66 @@
 package ru.kolesnik.potok.core.database.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
-import ru.kolesnik.potok.core.database.model.TaskAssigneeEntity
-import ru.kolesnik.potok.core.database.model.TaskEntity
-import ru.kolesnik.potok.core.database.model.TaskPayloadEntity
-
+import androidx.room.*
+import ru.kolesnik.potok.core.database.entitys.TaskEntity
+import java.time.OffsetDateTime
+import java.util.UUID
 
 @Dao
 interface TaskDao {
-    @Query("UPDATE tasks SET flow_id = :flowId WHERE id = :taskId")
-    suspend fun closeTask(taskId: String, flowId: String)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(task: TaskEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateTask(task: TaskEntity)
+    suspend fun insertAll(tasks: List<TaskEntity>)
 
-    @Query("DELETE FROM tasks WHERE id = :taskId")
-    suspend fun deleteTask(taskId: String)
+    @Update
+    suspend fun update(task: TaskEntity)
 
-    @Query("DELETE FROM task_payloads WHERE id = :taskId")
-    suspend fun deletePayloadTask(taskId: String)
+    @Delete
+    suspend fun delete(task: TaskEntity)
 
-    @Query("DELETE FROM task_assignees WHERE task_id = :taskId")
-    suspend fun deleteAssigneesTask(taskId: String)
+    @Query("DELETE FROM tasks")
+    suspend fun deleteAll()
 
-    @Query("SELECT * FROM tasks WHERE life_area_id = :areaId ORDER BY life_area_placement ASC")
-    fun getTasksForArea(areaId: String): Flow<List<TaskEntity>>
+    @Query("DELETE FROM tasks WHERE lifeAreaId = :areaId")
+    suspend fun deleteByAreaId(areaId: UUID)
 
-    @Query("SELECT * FROM tasks WHERE flow_id = :flowId ORDER BY flow_placement ASC ")
-    fun getTasksForFlow(flowId: String): Flow<List<TaskEntity>>
+    @Query("DELETE FROM tasks WHERE flowId = :flowId")
+    suspend fun deleteByFlowId(flowId: UUID)
 
-    @Query("SELECT * FROM tasks WHERE id = :taskId")
-    suspend fun getTaskById(taskId: String): TaskEntity?
+    @Query("SELECT * FROM tasks WHERE cardId = :cardId")
+    suspend fun getById(cardId: UUID): TaskEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateTaskPayload(payload: TaskPayloadEntity)
+    @Query("SELECT * FROM tasks WHERE externalId = :externalId")
+    suspend fun getByExternalId(externalId: String): TaskEntity?
 
-    @Query("SELECT * FROM task_payloads WHERE task_id = :taskId")
-    suspend fun getPayloadForTask(taskId: String): TaskPayloadEntity?
+    @Query("SELECT * FROM tasks WHERE deletedAt IS NULL")
+    suspend fun getActiveTasks(): List<TaskEntity>
 
-    @Query("SELECT deadline FROM task_payloads WHERE task_id = :taskId")
-    fun getDeadline(taskId: String): Flow<List<String>>
+    @Query("SELECT * FROM tasks WHERE deletedAt IS NOT NULL")
+    suspend fun getArchivedTasks(): List<TaskEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addTaskAssignee(assignee: TaskAssigneeEntity)
+    @Query("SELECT * FROM tasks WHERE lifeAreaId = :areaId AND deletedAt IS NULL")
+    suspend fun getByAreaId(areaId: UUID): List<TaskEntity>
 
-    @Query("DELETE FROM task_assignees WHERE task_id = :taskId")
-    suspend fun clearAssigneesForTask(taskId: String)
+    @Query("SELECT * FROM tasks WHERE flowId = :flowId AND deletedAt IS NULL")
+    suspend fun getByFlowId(flowId: UUID): List<TaskEntity>
 
-    @Query("SELECT * FROM task_assignees WHERE task_id = :taskId")
-    fun getAssigneesForTask(taskId: String): Flow<List<TaskAssigneeEntity>>
+    @Query("SELECT * FROM tasks WHERE flowId = :flowId AND lifeAreaPlacement = :position AND deletedAt IS NULL")
+    suspend fun getByFlowAndPosition(flowId: UUID, position: Int): List<TaskEntity>
+
+    @Query("UPDATE tasks SET deletedAt = :deletedAt WHERE cardId = :cardId")
+    suspend fun markAsArchived(cardId: UUID, deletedAt: OffsetDateTime)
+
+    @Query("UPDATE tasks SET deletedAt = NULL WHERE cardId = :cardId")
+    suspend fun restoreFromArchive(cardId: UUID)
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE flowId = :flowId AND deletedAt IS NULL")
+    suspend fun countByFlow(flowId: UUID): Int
+
+    @Query("UPDATE tasks SET flowId = :flowId, flowPlacement = :position WHERE cardId = :taskId")
+    suspend fun moveToFlow(taskId: UUID, flowId: UUID, position: Int)
+
+    @Query("UPDATE tasks SET lifeAreaId = :areaId, lifeAreaPlacement = :position WHERE cardId = :taskId")
+    suspend fun moveToArea(taskId: UUID, areaId: UUID, position: Int)
 }

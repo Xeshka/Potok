@@ -4,7 +4,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import ru.kolesnik.potok.core.network.SyncFullDataSource
+import ru.kolesnik.potok.core.network.AddressbookSource
 import ru.kolesnik.potok.core.network.retrofit.ExtendedRetrofitSyncFull
 
 @Module
@@ -12,5 +12,5 @@ import ru.kolesnik.potok.core.network.retrofit.ExtendedRetrofitSyncFull
 internal interface FlavoredNetworkModule {
 
     @Binds
-    fun binds(impl: ExtendedRetrofitSyncFull): SyncFullDataSource
+    fun binds(impl: ExtendedRetrofitSyncFull): AddressbookSource
 }

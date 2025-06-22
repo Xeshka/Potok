@@ -5,11 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ru.kolesnik.potok.core.database.AppDatabase
-import ru.kolesnik.potok.core.database.dao.ChecklistDao
-import ru.kolesnik.potok.core.database.dao.CommentDao
-import ru.kolesnik.potok.core.database.dao.LifeAreaDao
-import ru.kolesnik.potok.core.database.dao.LifeFlowDao
-import ru.kolesnik.potok.core.database.dao.TaskDao
+import ru.kolesnik.potok.core.database.dao.*
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -17,12 +13,12 @@ internal object DaosModule {
     @Provides
     fun providesChecklistTaskDao(
         database: AppDatabase,
-    ): ChecklistDao = database.checklistTaskDao()
+    ): ChecklistTaskDao = database.checklistTaskDao()
 
     @Provides
     fun providesCommentDao(
         database: AppDatabase,
-    ): CommentDao = database.commentDao()
+    ): TaskCommentDao = database.taskCommentDao()
 
     @Provides
     fun providesLifeAreaDao(
@@ -38,4 +34,9 @@ internal object DaosModule {
     fun providesTaskDao(
         database: AppDatabase,
     ): TaskDao = database.taskDao()
+
+    @Provides
+    fun providesTaskAssigneeDao(
+        database: AppDatabase,
+    ): TaskAssigneeDao = database.taskAssigneeDao()
 }

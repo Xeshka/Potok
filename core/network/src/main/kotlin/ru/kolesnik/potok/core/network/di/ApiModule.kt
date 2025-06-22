@@ -6,7 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import ru.kolesnik.potok.core.network.api.*
-import ru.kolesnik.potok.core.network.retrofit.CommentApi
+import ru.kolesnik.potok.core.network.api.CommentApi
 
 @Module
 @InstallIn(SingletonComponent::class)
