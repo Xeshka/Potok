@@ -58,7 +58,7 @@ class DefaultChecklistRepository @Inject constructor(
 
     override suspend fun updateChecklistTaskDeadline(checklistTaskId: UUID, deadline: OffsetDateTime?): Result<ChecklistTask> = withContext(ioDispatcher) {
         try {
-            val request = ChecklistTaskDeadlineRq(deadline?.toString())
+            val request = ChecklistTaskDeadlineRq(deadline)
             val response = checklistDataSource.updateChecklistTaskDeadline(checklistTaskId, request)
             Result.Success(response.toDomain())
         } catch (e: Exception) {
@@ -87,7 +87,7 @@ class DefaultChecklistRepository @Inject constructor(
 
     override suspend fun moveChecklistTask(checklistTaskId: UUID, placement: Int?): Result<Unit> = withContext(ioDispatcher) {
         try {
-            val request = ChecklistTaskMoveRq(checklistTaskId, placement)
+            val request = ChecklistTaskMoveRq(checklistTaskId, placement ?: 0)
             checklistDataSource.moveChecklistTask(request)
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -97,12 +97,12 @@ class DefaultChecklistRepository @Inject constructor(
 
     private fun ChecklistTaskDTO.toDomain(): ChecklistTask {
         return ChecklistTask(
-            id = UUID.fromString(this.id),
+            id = this.id,
             title = this.title,
             done = this.done ?: false,
             placement = this.placement ?: 0,
             responsibles = this.responsibles ?: emptyList(),
-            deadline = this.deadline?.let { OffsetDateTime.parse(it) }
+            deadline = this.deadline
         )
     }
 }

@@ -7,26 +7,50 @@ import java.net.HttpCookie
 import java.net.URI
 import java.net.URISyntaxException
 import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 
 open class InMemoryCookieStore(private val name: String) : CookieStore {
 
-    internal val uriIndex = LinkedHashMap<URI, MutableList<HttpCookie>>()
+    private val uriIndex = ConcurrentHashMap<URI, MutableList<HttpCookie>>()
     private val lock = ReentrantLock(false)
+    private var lastCleanup = System.currentTimeMillis()
+    private var lastUri: URI? = null
+    private var lastCookies: List<HttpCookie> = emptyList()
+
+    companion object {
+        private const val CLEANUP_INTERVAL = 60 * 1000L // 1 минута
+    }
+
+    private fun checkCleanup() {
+        if (System.currentTimeMillis() - lastCleanup > CLEANUP_INTERVAL) {
+            lock.lock()
+            try {
+                // Удаляем просроченные куки
+                for (list in uriIndex.values) {
+                    val it = list.iterator()
+                    while (it.hasNext()) {
+                        if (it.next().hasExpired()) {
+                            it.remove()
+                        }
+                    }
+                }
+                lastCleanup = System.currentTimeMillis()
+            } finally {
+                lock.unlock()
+            }
+        }
+    }
 
     override fun removeAll(): Boolean {
         lock.lock()
-
-        val result: Boolean
-
         try {
-            result = uriIndex.isNotEmpty()
+            val result = uriIndex.isNotEmpty()
             uriIndex.clear()
+            return result
         } finally {
             lock.unlock()
         }
-
-        return result
     }
 
     override fun add(uri: URI?, cookie: HttpCookie?) {
@@ -48,17 +72,20 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
         lock.lock()
         try {
+            checkCleanup()
             addIndex(getEffectiveURI(uri), cookie)
+            // Сбрасываем кэш при добавлении новых кук
+            lastUri = null
         } finally {
             lock.unlock()
         }
     }
 
     override fun getCookies(): List<HttpCookie> {
-        val rt = arrayListOf<HttpCookie>()
-
+        checkCleanup()
         lock.lock()
         try {
+            val rt = arrayListOf<HttpCookie>()
             for (list in uriIndex.values) {
                 val it = list.iterator()
                 while (it.hasNext()) {
@@ -70,23 +97,19 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
                     }
                 }
             }
+            return Collections.unmodifiableList(rt)
         } finally {
             lock.unlock()
         }
-
-        return Collections.unmodifiableList(rt)
     }
 
     override fun getURIs(): List<URI> {
-        val uris = arrayListOf<URI>()
-
         lock.lock()
         try {
             val result = ArrayList(uriIndex.keys)
             result.remove(null)
             return Collections.unmodifiableList(result)
         } finally {
-            uris.addAll(uriIndex.keys)
             lock.unlock()
         }
     }
@@ -109,15 +132,15 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         }
 
         lock.lock()
-
-        return try {
+        try {
             val lintedURI = getEffectiveURI(uri)
-
             if (uriIndex[lintedURI] == null) {
-                false
+                return false
             } else {
                 val cookies = uriIndex[lintedURI]
-                cookies?.remove(cookie) ?: false
+                val removed = cookies?.remove(cookie) ?: false
+                if (removed) lastUri = null  // Сбрасываем кэш при изменении
+                return removed
             }
         } finally {
             lock.unlock()
@@ -133,24 +156,31 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
             return emptyList()
         }
 
-        val cookies = arrayListOf<HttpCookie>()
+        checkCleanup()
+
+        // Используем кэш для идентичных URI
+        val effectiveUri = getEffectiveURI(uri)
+        if (effectiveUri == lastUri) {
+            return lastCookies
+        }
 
         lock.lock()
         try {
+            val cookies = arrayListOf<HttpCookie>()
             uri.host?.let { cookies.addAll(getInternal1(it)) }
-            val internal2 = getInternal2(getEffectiveURI(uri)).filter { !cookies.contains(it) }
+            val internal2 = getInternal2(effectiveUri).filter { !cookies.contains(it) }
             cookies.addAll(internal2)
+
+            // Обновляем кэш
+            lastUri = effectiveUri
+            lastCookies = cookies
+
+            return cookies
         } finally {
             lock.unlock()
         }
-
-        return cookies
     }
 
-    // Copied from java.net.InMemoryCookieStore and migrated to Kotlin + minor improvements
-
-    // for cookie purpose, the effective uri should only be http://host
-    // the path will be taken into account when path-match algorithm applied
     internal fun getEffectiveURI(uri: URI): URI {
         return try {
             URI(uri.scheme ?: "http", uri.host, null, null, null)
@@ -161,7 +191,6 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
     private fun addIndex(index: URI, cookie: HttpCookie) {
         val cookies = uriIndex[index]
-
         if (cookies != null) {
             cookies.remove(cookie)
             cookies.add(cookie)

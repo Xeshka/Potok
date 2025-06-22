@@ -15,7 +15,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.kolesnik.potok.core.network.BuildConfig
 import ru.kolesnik.potok.core.network.SyncFullDataSource
+import ru.kolesnik.potok.core.network.di.ApiModule
 import ru.kolesnik.potok.core.network.model.TaskExternalId
+import ru.kolesnik.potok.core.network.model.api.LifeAreaDTO
 import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
 import ru.kolesnik.potok.core.network.model.potok.NetworkCreateTask
 import ru.kolesnik.potok.core.network.model.potok.NetworkLifeArea
@@ -59,6 +61,7 @@ private val employeeCache = ConcurrentHashMap<String, EmployeeResponse>()
 internal class RetrofitSyncFull @Inject constructor(
     networkJson: Json,
     okhttpCallFactory: dagger.Lazy<Call.Factory>,
+    private val retrofit: Retrofit
 ) : SyncFullDataSource {
 
     private val networkApi = trace("RetrofitRandmNetwork") {
@@ -74,6 +77,10 @@ internal class RetrofitSyncFull @Inject constructor(
 
     override suspend fun getFull(): List<NetworkLifeArea> {
         return networkApi.getFull()
+    }
+
+    override suspend fun gtFullNew(): List<LifeAreaDTO> {
+        return ApiModule.provideLifeAreaApi(retrofit).getFullLifeAreas()
     }
 
     override suspend fun getEmployee(

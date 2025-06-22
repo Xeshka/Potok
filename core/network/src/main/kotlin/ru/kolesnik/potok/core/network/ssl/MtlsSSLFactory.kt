@@ -28,6 +28,7 @@ class MtlsSSLFactory @Inject constructor(
     override var state = MutableStateFlow<MtlsSSLFactoryState>(MtlsSSLFactoryState.Loading)
         private set
 
+    private var cachedSSLFactory: SSLFactory? = null
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
     private val sslFactoryBuilder: SSLFactory.Builder = DEFAULT_BUILDER
 
@@ -86,10 +87,15 @@ class MtlsSSLFactory @Inject constructor(
     }
 
     override fun getSSLFactory(): SSLFactory {
-        val sberCa = context.resources.openRawResource(R.raw.core_network_sber_ca)
-        return sslFactoryBuilder
-            .withTrustMaterial(sberCa, "changeit".toCharArray())
-            .build()
+        return cachedSSLFactory ?: run {
+            context.resources.openRawResource(R.raw.core_network_sber_ca).use { caStream ->
+                val factory = sslFactoryBuilder
+                    .withTrustMaterial(caStream, "changeit".toCharArray())
+                    .build()
+                cachedSSLFactory = factory
+                factory
+            }
+        }
     }
 
     companion object {

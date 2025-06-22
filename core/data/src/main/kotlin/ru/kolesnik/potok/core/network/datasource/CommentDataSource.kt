@@ -1,7 +1,8 @@
 package ru.kolesnik.potok.core.network.datasource
 
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.UUID
+import java.util.UUID
+
 
 interface CommentDataSource {
     suspend fun getTaskComments(taskId: String, limit: Int = 10, offset: Int = 0, sort: String? = null): TaskCommentPageDTO

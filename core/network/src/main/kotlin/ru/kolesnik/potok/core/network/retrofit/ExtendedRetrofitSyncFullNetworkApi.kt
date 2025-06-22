@@ -8,7 +8,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import ru.kolesnik.potok.core.network.BuildConfig
 import ru.kolesnik.potok.core.network.SyncFullDataSource
+import ru.kolesnik.potok.core.network.di.ApiModule
 import ru.kolesnik.potok.core.network.model.TaskExternalId
+import ru.kolesnik.potok.core.network.model.api.LifeAreaDTO
 import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
 import ru.kolesnik.potok.core.network.model.potok.NetworkCreateTask
 import ru.kolesnik.potok.core.network.model.potok.NetworkLifeArea
@@ -20,7 +22,7 @@ import javax.inject.Singleton
 private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 
 @Singleton
-internal class ExtendedRetrofitSyncFull @Inject constructor(
+class ExtendedRetrofitSyncFull @Inject constructor(
     networkJson: Json,
     okhttpCallFactory: dagger.Lazy<Call.Factory>,
 ) : SyncFullDataSource {
@@ -49,6 +51,10 @@ internal class ExtendedRetrofitSyncFull @Inject constructor(
 
     override suspend fun getFull(): List<NetworkLifeArea> {
         return networkApi.getFull()
+    }
+
+    override suspend fun gtFullNew(): List<LifeAreaDTO> {
+        return ApiModule.provideLifeAreaApi(retrofit).getFullLifeAreas()
     }
 
     override suspend fun getEmployee(

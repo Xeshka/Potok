@@ -2,8 +2,8 @@ package ru.kolesnik.potok.core.network.datasource.impl
 
 import ru.kolesnik.potok.core.network.datasource.ChecklistDataSource
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.UUID
 import ru.kolesnik.potok.core.network.retrofit.ExtendedRetrofitSyncFull
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 

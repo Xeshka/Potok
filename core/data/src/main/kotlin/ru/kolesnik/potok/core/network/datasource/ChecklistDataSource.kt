@@ -1,7 +1,8 @@
 package ru.kolesnik.potok.core.network.datasource
 
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.UUID
+import java.util.UUID
+
 
 interface ChecklistDataSource {
     suspend fun getChecklist(taskId: String): List<ChecklistTaskDTO>

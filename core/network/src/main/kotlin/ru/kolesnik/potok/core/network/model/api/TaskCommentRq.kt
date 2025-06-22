@@ -1,30 +1,24 @@
 package ru.kolesnik.potok.core.network.model.api
 
 import kotlinx.serialization.Serializable
-import java.time.OffsetDateTime
 import java.util.UUID
+import java.time.OffsetDateTime
+import kotlinx.serialization.Contextual
 
-// Request models
 @Serializable
 data class TaskCommentRq(
-    val parentCommentId: UUID? = null,
+    @Contextual val parentCommentId: UUID? = null,
     val text: String
 )
 
 @Serializable
-data class SearchQuery(
-    val query: String
-)
-
-// Response models
-@Serializable
 data class TaskCommentDTO(
-    val id: UUID,
-    val parentCommentId: UUID? = null,
+    @Contextual val id: UUID,
+    @Contextual val parentCommentId: UUID? = null,
     val owner: String? = null,
     val text: String,
-    val createdAt: OffsetDateTime,
-    val updatedAt: OffsetDateTime
+    @Contextual val createdAt: OffsetDateTime,
+    @Contextual val updatedAt: OffsetDateTime
 )
 
 @Serializable
@@ -33,9 +27,4 @@ data class TaskCommentPageDTO(
     val offset: Int? = null,
     val total: Int? = null,
     val items: List<TaskCommentDTO>
-)
-
-@Serializable
-data class SearchRs(
-    val commentIds: List<UUID>
 )

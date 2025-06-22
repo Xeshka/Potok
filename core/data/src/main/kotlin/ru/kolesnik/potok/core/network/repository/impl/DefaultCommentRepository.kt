@@ -59,7 +59,7 @@ class DefaultCommentRepository @Inject constructor(
     override suspend fun searchComments(taskId: String, query: String): Result<List<UUID>> = withContext(ioDispatcher) {
         try {
             val response = commentDataSource.searchComments(taskId, query)
-            Result.Success(response.commentIds.map { UUID.fromString(it) })
+            Result.Success(response.commentIds)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -67,12 +67,12 @@ class DefaultCommentRepository @Inject constructor(
 
     private fun TaskCommentDTO.toDomain(): TaskComment {
         return TaskComment(
-            id = UUID.fromString(this.id),
-            parentCommentId = this.parentCommentId?.let { UUID.fromString(it) },
+            id = this.id,
+            parentCommentId = this.parentCommentId,
             owner = this.owner,
             text = this.text,
-            createdAt = OffsetDateTime.parse(this.createdAt),
-            updatedAt = OffsetDateTime.parse(this.updatedAt)
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt
         )
     }
 }

@@ -1,21 +1,33 @@
 package ru.kolesnik.potok.core.network.model.api
 
 import kotlinx.serialization.Serializable
-import ru.kolesnik.potok.core.network.model.UuidSerializer
 import java.util.UUID
+import kotlinx.serialization.Contextual
 
-// Request models
 @Serializable
-data class SearchQuery1(
+data class SearchQuery(
     val query: String
 )
 
-// Response models
+@Serializable
+data class SearchRs(
+    @Contextual val commentIds: List<@Contextual UUID>
+)
+
 @Serializable
 data class SearchResult(
     val tasks: List<TaskSearchResult>,
     val comments: List<CommentSearchResult>,
     val checks: List<CheckSearchResult>
+)
+
+@Serializable
+data class CommentSearchResult(
+    val taskId: TaskId,
+    val taskTitle: String,
+    @Contextual val commentId: UUID,
+    val commentText: String,
+    val commentOwner: String
 )
 
 @Serializable
@@ -26,24 +38,9 @@ data class TaskSearchResult(
 )
 
 @Serializable
-data class CommentSearchResult(
-    val taskId: TaskId,
-    val taskTitle: String,
-    val commentId: UUID,
-    val commentText: String,
-    val commentOwner: String
-)
-
-@Serializable
 data class CheckSearchResult(
     val taskId: TaskId,
     val taskTitle: String,
-    val checkTaskId: UUID,
+    @Contextual val checkTaskId: UUID,
     val title: String
-)
-
-@Serializable
-data class TaskId(
-    val id: Long? = null,
-    val externalId: String
 )

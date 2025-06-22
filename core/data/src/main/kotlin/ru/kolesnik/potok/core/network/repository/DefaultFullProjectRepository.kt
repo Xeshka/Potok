@@ -1,5 +1,6 @@
 package ru.kolesnik.potok.core.network.repository
 
+import android.util.Log
 import ru.kolesnik.potok.core.database.dao.ChecklistDao
 import ru.kolesnik.potok.core.database.dao.LifeAreaDao
 import ru.kolesnik.potok.core.database.dao.LifeFlowDao
@@ -29,24 +30,53 @@ class DefaultFullProjectRepository @Inject constructor(
 ) : FullProjectRepository {
 
     override suspend fun sync() {
+        var time = logging(startTime = System.nanoTime(), name = "start")
+
         val fullRq = syncFullDataSource.getFull()
-            .map(NetworkLifeArea::toEntities)
+            .map(NetworkLifeArea::toEntities).also {
+                time = logging(startTime = time, name = "fullRq")
+            }
 
-        val lifeAreasDeferred = fullRq.map { it.lifeArea }.syncLifeAreaEntity()
+       syncFullDataSource.gtFullNew().also {
+            time = logging(startTime = time, name = "full")
+        }
+
+
+        val lifeAreasDeferred = fullRq.map { it.lifeArea }.syncLifeAreaEntity().also {
+            time = logging(startTime = time, name = "lifeAreasDeferred")
+        }
         val lifeAreaInfoDeferred =
-            fullRq.mapNotNull { it.sharedInfo }.syncLifeAreaSharedInfoEntity()
+            fullRq.mapNotNull { it.sharedInfo }.syncLifeAreaSharedInfoEntity().also {
+                time = logging(startTime = time, name = "lifeAreaInfoDeferred")
+            }
         val sharedRecipientsDeferred =
-            fullRq.flatMap { it.sharedRecipients }.syncLifeAreaSharedInfoRecipientEntity()
+            fullRq.flatMap { it.sharedRecipients }.syncLifeAreaSharedInfoRecipientEntity().also {
+                time = logging(startTime = time, name = "sharedRecipientsDeferred")
+            }
 
-        val flowsEn = fullRq.flatMap { it.flows }
-        val flowsDeferred = flowsEn.map { it.flow }.syncLifeFlowEntity()
+        val flowsEn = fullRq.flatMap { it.flows }.also {
+            time = logging(startTime = time, name = "flowsEn")
+        }
+        val flowsDeferred = flowsEn.map { it.flow }.syncLifeFlowEntity().also {
+            time = logging(startTime = time, name = "flowsDeferred")
+        }
 
-        val tasksEn = flowsEn.flatMap { it.tasks }
+        val tasksEn = flowsEn.flatMap { it.tasks }.also {
+            time = logging(startTime = time, name = "tasksEn")
+        }
 
-        val tasksDeferred = tasksEn.map { it.task }.syncTaskEntity()
-        val payloadsDeferred = tasksEn.mapNotNull { it.payload }.syncTaskPayloadEntity()
-        val checklistsDeferred = tasksEn.mapNotNull { it.checklists }.syncChecklistEntities()
-        val assignees = tasksEn.map { it.assignees?.syncTaskAssigneeEntity(it.task.id) }
+        val tasksDeferred = tasksEn.map { it.task }.syncTaskEntity().also {
+            time = logging(startTime = time, name = "tasksDeferred")
+        }
+        val payloadsDeferred = tasksEn.mapNotNull { it.payload }.syncTaskPayloadEntity().also {
+            time = logging(startTime = time, name = "payloadsDeferred")
+        }
+        val checklistsDeferred = tasksEn.mapNotNull { it.checklists }.syncChecklistEntities().also {
+            time = logging(startTime = time, name = "checklistsDeferred")
+        }
+        val assignees = tasksEn.map { it.assignees?.syncTaskAssigneeEntity(it.task.id) }.also {
+            time = logging(startTime = time, name = "assignees")
+        }
     }
 
     override suspend fun getEmployee(employees: List<EmployeeId>): List<EmployeeResponse> {
@@ -83,5 +113,12 @@ class DefaultFullProjectRepository @Inject constructor(
             check.checklistTasks.onEach { checklistDao.insertOrUpdateChecklistTask(it) }
             check.responsibles.onEach { checklistDao.addChecklistResponsible(it) }
         }
+
+    private fun logging(name: String, startTime: Long): Long {
+        val endTime = System.nanoTime()
+        val durationMs = (endTime - startTime) / 1_000_000_000.0
+        Log.d("TIMING", "$name: $durationMs мс")
+        return endTime
+    }
 
 }
