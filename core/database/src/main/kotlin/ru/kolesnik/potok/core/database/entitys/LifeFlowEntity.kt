@@ -21,5 +21,5 @@ data class LifeFlowEntity(
     val title: String,
     val style: String,
     val placement: Int?,
-    val status: FlowStatus?
+    val status: FlowStatus
 )

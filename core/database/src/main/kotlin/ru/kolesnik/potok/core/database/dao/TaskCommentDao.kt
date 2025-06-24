@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.TaskCommentEntity
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -29,7 +30,7 @@ interface TaskCommentDao {
     suspend fun getById(id: UUID): TaskCommentEntity?
 
     @Query("SELECT * FROM task_comments WHERE taskCardId = :taskId")
-    suspend fun getByTaskId(taskId: UUID): List<TaskCommentEntity>
+    fun getByTaskId(taskId: UUID): Flow<List<TaskCommentEntity>>
 
     @Query("SELECT * FROM task_comments WHERE parentCommentId = :parentId")
     suspend fun getReplies(parentId: UUID): List<TaskCommentEntity>

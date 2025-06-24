@@ -11,14 +11,8 @@ import java.util.UUID
     foreignKeys = [
         ForeignKey(
             entity = TaskEntity::class,
-            parentColumns = ["cardId"],
-            childColumns = ["taskCardId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = TaskCommentEntity::class,
             parentColumns = ["id"],
-            childColumns = ["parentCommentId"],
+            childColumns = ["taskCardId"],
             onDelete = ForeignKey.CASCADE
         )
     ]

@@ -10,7 +10,7 @@ import java.util.UUID
     tableName = "checklist_tasks",
     foreignKeys = [ForeignKey(
         entity = TaskEntity::class,
-        parentColumns = ["cardId"],
+        parentColumns = ["id"],
         childColumns = ["taskCardId"],
         onDelete = ForeignKey.CASCADE
     )]
@@ -19,8 +19,17 @@ data class ChecklistTaskEntity(
     @PrimaryKey val id: UUID,
     val taskCardId: UUID,
     val title: String,
-    val done: Boolean? = null,
-    val placement: Int? = null,
-    val responsibles: List<String>? = null,
-    val deadline: OffsetDateTime? = null
+    val done: Boolean?,
+    val placement: Int?,
+    val deadline: OffsetDateTime?
+)
+
+@Entity(
+    tableName = "checklist_task_responsibles",
+    primaryKeys = ["checklistTaskId", "employeeId"]
+)
+data class ChecklistTaskResponsibleEntity(
+    val checklistTaskId: UUID,
+    val employeeId: String,
+    val id: Long = 0
 )

@@ -3,7 +3,6 @@ package ru.kolesnik.potok.core.database.entitys
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import ru.kolesnik.potok.core.model.TaskPayload
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -25,37 +24,62 @@ import java.util.UUID
     ]
 )
 data class TaskEntity(
-    @PrimaryKey val cardId: UUID,
-    val externalId: String?,
-    val internalId: Long?,
+    @PrimaryKey val id: UUID,
+    val flowId: UUID?,
     val title: String,
     val subtitle: String?,
     val mainOrder: Int?,
     val source: String?,
     val taskOwner: String,
-    val creationDate: OffsetDateTime,
-    val payload: TaskPayload,
-    val lifeAreaId: UUID?,
-    val flowId: UUID?,
+    val creationDate: OffsetDateTime?,
+    val internalId: Long?,
     val lifeAreaPlacement: Int?,
     val flowPlacement: Int?,
     val commentCount: Int?,
     val attachmentCount: Int?,
-    val deletedAt: OffsetDateTime? = null
+    val lifeAreaId: UUID?
+)
+
+@Entity(
+    tableName = "task_payloads",
+    primaryKeys = ["taskId"],
+    foreignKeys = [ForeignKey(
+        entity = TaskEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["taskId"],
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class TaskPayloadEntity(
+    val taskId: UUID,
+    val title: String?,
+    val source: String?,
+    val onMainPage: Boolean?,
+    val deadline: OffsetDateTime?,
+    val lifeArea: String?,
+    val lifeAreaId: UUID?,
+    val subtitle: String?,
+    val userEdit: Boolean?,
+    val important: Boolean?,
+    val messageId: String?,
+    val fullMessage: String?,
+    val description: String?,
+    val priority: Int?,
+    val userChangeAssignee: Boolean?,
+    val organization: String?,
+    val shortMessage: String?,
+    val externalId: String?,
+    val relatedAssignment: String?,
+    val meanSource: String?,
+    val id: String?
 )
 
 @Entity(
     tableName = "task_assignees",
-    primaryKeys = ["taskCardId", "employeeId"],
-    foreignKeys = [ForeignKey(
-        entity = TaskEntity::class,
-        parentColumns = ["cardId"],
-        childColumns = ["taskCardId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    primaryKeys = ["taskId", "employeeId"]
 )
 data class TaskAssigneeEntity(
-    val taskCardId: UUID,
+    val taskId: UUID,
     val employeeId: String,
     val complete: Boolean
 )

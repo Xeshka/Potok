@@ -1,7 +1,9 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.ChecklistTaskEntity
+import ru.kolesnik.potok.core.database.entitys.ChecklistTaskResponsibleEntity
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -13,6 +15,9 @@ interface ChecklistTaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(checkItems: List<ChecklistTaskEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertResponsibles(responsibles: List<ChecklistTaskResponsibleEntity>)
+
     @Update
     suspend fun update(checkItem: ChecklistTaskEntity)
 
@@ -22,6 +27,9 @@ interface ChecklistTaskDao {
     @Query("DELETE FROM checklist_tasks WHERE taskCardId = :taskId")
     suspend fun deleteByTaskId(taskId: UUID)
 
+    @Query("DELETE FROM checklist_task_responsibles WHERE checklistTaskId = :checklistTaskId")
+    suspend fun deleteResponsiblesByChecklistTaskId(checklistTaskId: UUID)
+
     @Query("DELETE FROM checklist_tasks")
     suspend fun deleteAll()
 
@@ -29,7 +37,7 @@ interface ChecklistTaskDao {
     suspend fun getById(id: UUID): ChecklistTaskEntity?
 
     @Query("SELECT * FROM checklist_tasks WHERE taskCardId = :taskId ORDER BY placement ASC")
-    suspend fun getByTaskId(taskId: UUID): List<ChecklistTaskEntity>
+    fun getByTaskId(taskId: UUID): Flow<List<ChecklistTaskEntity>>
 
     @Query("SELECT COUNT(*) FROM checklist_tasks WHERE taskCardId = :taskId AND done = 1")
     suspend fun getCompletedCount(taskId: UUID): Int
@@ -49,13 +57,9 @@ interface ChecklistTaskDao {
     @Query("UPDATE checklist_tasks SET deadline = :deadline WHERE id = :itemId")
     suspend fun updateDeadline(itemId: UUID, deadline: OffsetDateTime?)
 
-    // Добавленные/обновленные методы для работы с responsibles
-    @Query("UPDATE checklist_tasks SET responsibles = :responsibles WHERE id = :itemId")
-    suspend fun updateResponsibles(itemId: UUID, responsibles: List<String>?)
+    @Query("SELECT * FROM checklist_task_responsibles WHERE checklistTaskId = :checklistTaskId")
+    suspend fun getResponsibles(checklistTaskId: UUID): List<ChecklistTaskResponsibleEntity>
 
-    @Query("SELECT responsibles FROM checklist_tasks WHERE id = :itemId")
-    suspend fun getResponsibles(itemId: UUID): List<String>?
-
-    @Query("SELECT * FROM checklist_tasks WHERE :employeeId IN (responsibles)")
+    @Query("SELECT * FROM checklist_tasks WHERE id IN (SELECT checklistTaskId FROM checklist_task_responsibles WHERE employeeId = :employeeId)")
     suspend fun getItemsByResponsible(employeeId: String): List<ChecklistTaskEntity>
 }

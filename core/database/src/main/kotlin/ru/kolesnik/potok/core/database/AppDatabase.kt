@@ -17,27 +17,29 @@
 package ru.kolesnik.potok.core.database
 
 import androidx.room.Database
+import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import ru.kolesnik.potok.core.database.dao.*
-import ru.kolesnik.potok.core.database.entitys.ChecklistTaskEntity
-import ru.kolesnik.potok.core.database.entitys.LifeAreaEntity
-import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
-import ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity
-import ru.kolesnik.potok.core.database.entitys.TaskCommentEntity
-import ru.kolesnik.potok.core.database.entitys.TaskEntity
+import ru.kolesnik.potok.core.database.entitys.*
 
 @Database(
     entities = [
         LifeAreaEntity::class,
+        LifeAreaSharedInfoEntity::class,
+        LifeAreaSharedInfoRecipientEntity::class,
         LifeFlowEntity::class,
         TaskEntity::class,
+        TaskPayloadEntity::class,
         TaskAssigneeEntity::class,
         ChecklistTaskEntity::class,
+        ChecklistTaskResponsibleEntity::class,
         TaskCommentEntity::class
     ],
     version = 2,
     exportSchema = true
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun lifeAreaDao(): LifeAreaDao
     abstract fun lifeFlowDao(): LifeFlowDao
