@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import kotlinx.serialization.json.Json
 import ru.kolesnik.potok.core.model.LifeAreaSharedInfo
 import ru.kolesnik.potok.core.model.TaskPayload
+import ru.kolesnik.potok.core.network.model.api.FlowStatus
 
 import java.time.LocalDate
 import java.time.OffsetDateTime

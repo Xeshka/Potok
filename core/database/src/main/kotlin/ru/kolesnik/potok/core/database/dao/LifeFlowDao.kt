@@ -1,7 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
-import ru.kolesnik.potok.core.database.entitys.FlowStatus
+import ru.kolesnik.potok.core.network.model.api.FlowStatus
 
 import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
 
