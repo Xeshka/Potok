@@ -1,7 +1,7 @@
 package ru.kolesnik.potok.core.network.demo
 
+import ru.kolesnik.potok.core.network.api.ChecklistApi
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.retrofit.ChecklistApi
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,28 +12,32 @@ class DemoChecklistApi @Inject constructor(
 ) : ChecklistApi {
     
     override suspend fun getChecklist(taskId: String): List<ChecklistTaskDTO> {
-        // Find the task in our demo data
-        val allAreas = dataSource.getFullLifeAreas()
-        for (area in allAreas) {
-            area.flows?.forEach { flow ->
-                flow.tasks?.find { it.id == taskId }?.let { task ->
-                    return task.checkList ?: emptyList()
-                }
-            }
-        }
-        
-        return emptyList()
+        // Заглушка для демо-режима
+        return dataSource.getFull()
+            .flatMap { it.flows ?: emptyList() }
+            .flatMap { it.tasks ?: emptyList() }
+            .find { it.id == taskId }
+            ?.checkList?.map {
+                ChecklistTaskDTO(
+                    id = it.id,
+                    title = it.title,
+                    done = it.done,
+                    placement = it.placement,
+                    responsibles = it.responsibles,
+                    deadline = it.deadline
+                )
+            } ?: emptyList()
     }
     
     override suspend fun createChecklist(taskId: String, request: ChecklistRq): ChecklistDTO {
-        // Return a mock checklist
+        // Заглушка для демо-режима
         return ChecklistDTO(
             checklist = request.checklist.mapIndexed { index, item ->
                 ChecklistTaskDTO(
                     id = UUID.randomUUID(),
                     title = item.title,
-                    done = item.done ?: false,
-                    placement = index + 1,
+                    done = item.done,
+                    placement = index,
                     responsibles = item.responsibles,
                     deadline = item.deadline
                 )
@@ -42,77 +46,62 @@ class DemoChecklistApi @Inject constructor(
     }
     
     override suspend fun moveChecklistTask(request: ChecklistTaskMoveRq) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
-    override suspend fun updateChecklistTaskTitle(
-        checklistTaskId: UUID,
-        request: ChecklistTaskTitleRq
-    ): ChecklistTaskDTO {
-        // Return a mock updated checklist task
+    override suspend fun updateChecklistTaskTitle(checklistTaskId: UUID, request: ChecklistTaskTitleRq): ChecklistTaskDTO {
+        // Заглушка для демо-режима
         return ChecklistTaskDTO(
             id = checklistTaskId,
             title = request.title,
             done = false,
-            placement = 1
+            placement = 0
         )
     }
     
     override suspend fun deleteChecklistTask(checklistTaskId: UUID) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
-    override suspend fun updateChecklistTaskDeadline(
-        checklistTaskId: UUID,
-        request: ChecklistTaskDeadlineRq
-    ): ChecklistTaskDTO {
-        // Return a mock updated checklist task
+    override suspend fun updateChecklistTaskDeadline(checklistTaskId: UUID, request: ChecklistTaskDeadlineRq): ChecklistTaskDTO {
+        // Заглушка для демо-режима
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Updated Task",
+            title = "Task",
             done = false,
-            placement = 1,
+            placement = 0,
             deadline = request.deadline
         )
     }
     
-    override suspend fun updateChecklistTaskResponsibles(
-        checklistTaskId: UUID,
-        request: ChecklistTaskResponsiblesRq
-    ): ChecklistTaskDTO {
-        // Return a mock updated checklist task
+    override suspend fun updateChecklistTaskResponsibles(checklistTaskId: UUID, request: ChecklistTaskResponsiblesRq): ChecklistTaskDTO {
+        // Заглушка для демо-режима
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Updated Task",
+            title = "Task",
             done = false,
-            placement = 1,
+            placement = 0,
             responsibles = request.responsibles
         )
     }
     
-    override suspend fun updateChecklistTaskStatus(
-        checklistTaskId: UUID,
-        done: Boolean
-    ): ChecklistTaskDTO {
-        // Return a mock updated checklist task
+    override suspend fun updateChecklistTaskStatus(checklistTaskId: UUID, done: Boolean): ChecklistTaskDTO {
+        // Заглушка для демо-режима
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Updated Task",
+            title = "Task",
             done = done,
-            placement = 1
+            placement = 0
         )
     }
     
-    override suspend fun createChecklistTask(
-        taskId: String,
-        request: ChecklistTaskTitleRq
-    ): ChecklistTaskDTO {
-        // Return a mock checklist task
+    override suspend fun createChecklistTask(taskId: String, request: ChecklistTaskTitleRq): ChecklistTaskDTO {
+        // Заглушка для демо-режима
         return ChecklistTaskDTO(
             id = UUID.randomUUID(),
             title = request.title,
             done = false,
-            placement = 1
+            placement = 0
         )
     }
 }

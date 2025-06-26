@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.network.model.api.FlowStatus
 
 import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
@@ -32,6 +33,9 @@ interface LifeFlowDao {
 
     @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
     suspend fun getByAreaId(areaId: UUID): List<LifeFlowEntity>
+
+    @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
+    fun getByAreaIdFlow(areaId: UUID): Flow<List<LifeFlowEntity>>
 
     @Query("SELECT * FROM life_flows WHERE status = :status")
     suspend fun getByStatus(status: FlowStatus): List<LifeFlowEntity>

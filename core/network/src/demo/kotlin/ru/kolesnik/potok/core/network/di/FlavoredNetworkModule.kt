@@ -5,17 +5,8 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ru.kolesnik.potok.core.network.SyncFullDataSource
-import ru.kolesnik.potok.core.network.api.ChecklistApi
-import ru.kolesnik.potok.core.network.api.LifeFlowApi
-import ru.kolesnik.potok.core.network.api.SearchApi
-import ru.kolesnik.potok.core.network.api.TaskApi
-import ru.kolesnik.potok.core.network.demo.DemoChecklistApi
-import ru.kolesnik.potok.core.network.demo.DemoLifeAreaApi
-import ru.kolesnik.potok.core.network.demo.DemoLifeFlowApi
-import ru.kolesnik.potok.core.network.demo.DemoSearchApi
-import ru.kolesnik.potok.core.network.demo.DemoSyncFullDataSource
-import ru.kolesnik.potok.core.network.demo.DemoTaskApi
-import ru.kolesnik.potok.core.network.retrofit.LifeAreaApi
+import ru.kolesnik.potok.core.network.api.*
+import ru.kolesnik.potok.core.network.demo.*
 import javax.inject.Singleton
 
 @Module
@@ -45,4 +36,12 @@ internal interface FlavoredNetworkModule {
     @Binds
     @Singleton
     fun bindSearchApi(impl: DemoSearchApi): SearchApi
+
+    @Binds
+    @Singleton
+    fun bindCommentApi(impl: DemoCommentApi): CommentApi
+
+    @Binds
+    @Singleton
+    fun bindBoardApi(impl: DemoBoardApi): BoardApi
 }

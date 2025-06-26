@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.LifeAreaEntity
 
 import java.util.UUID
@@ -27,6 +28,9 @@ interface LifeAreaDao {
 
     @Query("SELECT * FROM life_areas ORDER BY placement ASC")
     suspend fun getAll(): List<LifeAreaEntity>
+
+    @Query("SELECT * FROM life_areas ORDER BY placement ASC")
+    fun getAllFlow(): Flow<List<LifeAreaEntity>>
 
     @Query("SELECT * FROM life_areas WHERE isDefault = 1 LIMIT 1")
     suspend fun getDefaultArea(): LifeAreaEntity?

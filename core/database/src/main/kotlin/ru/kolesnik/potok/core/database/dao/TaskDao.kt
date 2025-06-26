@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.TaskEntity
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -43,8 +44,14 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE lifeAreaId = :areaId AND deletedAt IS NULL")
     suspend fun getByAreaId(areaId: UUID): List<TaskEntity>
 
+    @Query("SELECT * FROM tasks WHERE lifeAreaId = :areaId AND deletedAt IS NULL")
+    fun getByAreaIdFlow(areaId: UUID): Flow<List<TaskEntity>>
+
     @Query("SELECT * FROM tasks WHERE flowId = :flowId AND deletedAt IS NULL")
     suspend fun getByFlowId(flowId: UUID): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks WHERE flowId = :flowId AND deletedAt IS NULL")
+    fun getByFlowIdFlow(flowId: UUID): Flow<List<TaskEntity>>
 
     @Query("SELECT * FROM tasks WHERE flowId = :flowId AND lifeAreaPlacement = :position AND deletedAt IS NULL")
     suspend fun getByFlowAndPosition(flowId: UUID, position: Int): List<TaskEntity>

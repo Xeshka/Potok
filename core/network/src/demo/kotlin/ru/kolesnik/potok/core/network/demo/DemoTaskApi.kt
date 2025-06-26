@@ -1,10 +1,8 @@
 package ru.kolesnik.potok.core.network.demo
 
+import ru.kolesnik.potok.core.network.api.TaskApi
 import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.model.potok.PatchPayload
-import ru.kolesnik.potok.core.network.retrofit.TaskApi
-import java.time.OffsetDateTime
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,94 +12,119 @@ class DemoTaskApi @Inject constructor(
 ) : TaskApi {
     
     override suspend fun createTask(request: TaskRq): TaskRs {
-        // Create a mock task response
+        // Заглушка для демо-режима
+        val task = dataSource.createTask(
+            ru.kolesnik.potok.core.network.model.potok.NetworkCreateTask(
+                lifeAreaId = request.lifeAreaId,
+                flowId = request.flowId,
+                payload = request.payload
+            )
+        )
+        
         return TaskRs(
-            id = UUID.randomUUID().toString().substring(0, 8),
-            title = request.payload.title ?: "New Task",
-            subtitle = request.payload.subtitle,
-            mainOrder = 0,
-            source = request.payload.source ?: "TRELLO",
-            taskOwner = "449927", // Default demo user
-            creationDate = OffsetDateTime.now(),
-            payload = request.payload,
-            internalId = (1000..9999).random().toLong(),
-            lifeAreaPlacement = 1,
-            flowPlacement = 1,
-            assignees = request.payload.assignees?.map { 
-                TaskAssigneeRs(employeeId = it, complete = false) 
+            id = task.id,
+            title = task.title,
+            subtitle = task.subtitle,
+            mainOrder = task.mainOrder,
+            source = task.source,
+            taskOwner = task.taskOwner,
+            creationDate = task.creationDate,
+            payload = task.payload,
+            internalId = task.internalId,
+            lifeAreaPlacement = task.lifeAreaPlacement,
+            flowPlacement = task.flowPlacement,
+            assignees = task.assignees?.map { 
+                TaskAssigneeRs(
+                    employeeId = it.employeeId,
+                    complete = it.complete
+                )
             },
-            commentCount = 0,
-            attachmentCount = 0,
-            checkList = emptyList(),
-            cardId = UUID.randomUUID()
+            commentCount = task.commentCount,
+            attachmentCount = task.attachmentCount,
+            checkList = task.checkList?.map {
+                ChecklistTaskDTO(
+                    id = it.id,
+                    title = it.title,
+                    done = it.done,
+                    placement = it.placement,
+                    responsibles = it.responsibles,
+                    deadline = it.deadline
+                )
+            },
+            cardId = task.cardId
         )
     }
     
     override suspend fun updateTask(taskId: String, request: PatchPayload) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
+        dataSource.patchTask(taskId, request)
     }
     
     override suspend fun getTaskId(taskId: String): Long {
-        // Return a random ID for demo
-        return (1000..9999).random().toLong()
+        // Заглушка для демо-режима
+        return 1L
     }
     
     override suspend fun checkTaskAllowed(taskId: Long) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun getTaskDetails(taskId: String): TaskRs {
-        // Find the task in our demo data
-        val allAreas = dataSource.getFullLifeAreas()
-        for (area in allAreas) {
-            area.flows?.forEach { flow ->
-                flow.tasks?.find { it.id == taskId }?.let { return it }
-            }
-        }
+        // Заглушка для демо-режима
+        val task = dataSource.getFull()
+            .flatMap { it.flows ?: emptyList() }
+            .flatMap { it.tasks ?: emptyList() }
+            .find { it.id == taskId }
+            ?: throw IllegalStateException("Task not found")
         
-        // If not found, return a mock
         return TaskRs(
-            id = taskId,
-            title = "Task not found",
-            subtitle = null,
-            mainOrder = 0,
-            source = "DEMO",
-            taskOwner = "449927",
-            creationDate = OffsetDateTime.now(),
-            payload = TaskPayload(
-                title = "Task not found",
-                description = "This is a mock task for demo purposes",
-                assignees = emptyList()
-            ),
-            internalId = 0,
-            lifeAreaPlacement = 0,
-            flowPlacement = 0,
-            assignees = emptyList(),
-            commentCount = 0,
-            attachmentCount = 0,
-            cardId = UUID.randomUUID()
+            id = task.id,
+            title = task.title,
+            subtitle = task.subtitle,
+            mainOrder = task.mainOrder,
+            source = task.source,
+            taskOwner = task.taskOwner,
+            creationDate = task.creationDate,
+            payload = task.payload,
+            internalId = task.internalId,
+            lifeAreaPlacement = task.lifeAreaPlacement,
+            flowPlacement = task.flowPlacement,
+            assignees = task.assignees?.map { 
+                TaskAssigneeRs(
+                    employeeId = it.employeeId,
+                    complete = it.complete
+                )
+            },
+            commentCount = task.commentCount,
+            attachmentCount = task.attachmentCount,
+            checkList = task.checkList?.map {
+                ChecklistTaskDTO(
+                    id = it.id,
+                    title = it.title,
+                    done = it.done,
+                    placement = it.placement,
+                    responsibles = it.responsibles,
+                    deadline = it.deadline
+                )
+            },
+            cardId = task.cardId
         )
     }
     
     override suspend fun moveTaskToFlow(taskId: String, request: FlowPositionRq) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun moveTaskToLifeArea(taskId: String, request: LifeAreaPositionRq) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun returnTask(taskId: String, assignee: String) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
-    override suspend fun getTaskArchive(
-        limit: Int?,
-        offset: Int?,
-        sort: String?,
-        status: String?
-    ): TaskArchivePageDTO {
-        // Return empty archive for demo
+    override suspend fun getTaskArchive(limit: Int?, offset: Int?, sort: String?, status: String?): TaskArchivePageDTO {
+        // Заглушка для демо-режима
         return TaskArchivePageDTO(
             limit = limit ?: 10,
             offset = offset ?: 0,
@@ -111,39 +134,19 @@ class DemoTaskApi @Inject constructor(
     }
     
     override suspend fun deleteTasksFromArchive(taskIds: String) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun restoreTasksFromArchive(request: TaskExternalIds) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun archiveTask(taskId: String) {
-        // No-op in demo mode
+        // Заглушка для демо-режима
     }
     
     override suspend fun getArchivedTaskDetails(taskId: String): TaskRs {
-        // Return a mock archived task
-        return TaskRs(
-            id = taskId,
-            title = "Archived Task",
-            subtitle = null,
-            mainOrder = 0,
-            source = "DEMO",
-            taskOwner = "449927",
-            creationDate = OffsetDateTime.now().minusDays(30),
-            payload = TaskPayload(
-                title = "Archived Task",
-                description = "This is a mock archived task for demo purposes",
-                assignees = emptyList()
-            ),
-            internalId = 0,
-            lifeAreaPlacement = 0,
-            flowPlacement = 0,
-            assignees = emptyList(),
-            commentCount = 0,
-            attachmentCount = 0,
-            cardId = UUID.randomUUID()
-        )
+        // Заглушка для демо-режима
+        return getTaskDetails(taskId)
     }
 }

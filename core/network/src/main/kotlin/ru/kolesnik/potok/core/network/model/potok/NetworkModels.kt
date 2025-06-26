@@ -1,9 +1,13 @@
 package ru.kolesnik.potok.core.network.model.potok
 
+import kotlinx.serialization.Serializable
 import ru.kolesnik.potok.core.network.model.api.FlowStatus
+import ru.kolesnik.potok.core.network.model.api.LifeAreaSharedInfo
+import ru.kolesnik.potok.core.network.model.api.TaskPayload
 import java.time.OffsetDateTime
 import java.util.UUID
 
+@Serializable
 data class NetworkLifeArea(
     val id: UUID,
     val title: String,
@@ -12,18 +16,12 @@ data class NetworkLifeArea(
     val tagsId: Long? = null,
     val placement: Int? = null,
     val isDefault: Boolean,
-    val sharedInfo: NetworkLifeAreaSharedInfo? = null,
+    val sharedInfo: LifeAreaSharedInfo? = null,
     val isTheme: Boolean,
     val onlyPersonal: Boolean
 )
 
-data class NetworkLifeAreaSharedInfo(
-    val owner: String,
-    val readOnly: Boolean,
-    val expiredDate: String? = null,
-    val recipients: List<String>
-)
-
+@Serializable
 data class NetworkLifeFlow(
     val id: UUID,
     val areaId: UUID,
@@ -34,6 +32,7 @@ data class NetworkLifeFlow(
     val tasks: List<NetworkTask>? = null
 )
 
+@Serializable
 data class NetworkTask(
     val id: String,
     val title: String,
@@ -42,7 +41,7 @@ data class NetworkTask(
     val source: String? = null,
     val taskOwner: String,
     val creationDate: OffsetDateTime,
-    val payload: NetworkTaskPayload,
+    val payload: TaskPayload,
     val internalId: Long? = null,
     val lifeAreaPlacement: Int? = null,
     val flowPlacement: Int? = null,
@@ -53,41 +52,13 @@ data class NetworkTask(
     val cardId: UUID
 )
 
+@Serializable
 data class NetworkTaskAssignee(
     val employeeId: String,
     val complete: Boolean
 )
 
-data class NetworkTaskPayload(
-    val title: String? = null,
-    val source: String? = null,
-    val onMainPage: Boolean? = null,
-    val deadline: OffsetDateTime? = null,
-    val lifeArea: String? = null,
-    val lifeAreaId: UUID? = null,
-    val subtitle: String? = null,
-    val userEdit: Boolean? = null,
-    val assignees: List<String>? = null,
-    val important: Boolean? = null,
-    val messageId: String? = null,
-    val fullMessage: String? = null,
-    val description: String? = null,
-    val descriptionDelta: List<NetworkOp>? = null,
-    val priority: Int? = null,
-    val userChangeAssignee: Boolean? = null,
-    val organization: String? = null,
-    val shortMessage: String? = null,
-    val externalId: String? = null,
-    val relatedAssignment: String? = null,
-    val meanSource: String? = null,
-    val id: String? = null
-)
-
-data class NetworkOp(
-    val insert: String? = null,
-    val attributes: Map<String, Any>? = null
-)
-
+@Serializable
 data class NetworkChecklistTask(
     val id: UUID,
     val title: String,
@@ -97,12 +68,14 @@ data class NetworkChecklistTask(
     val deadline: OffsetDateTime? = null
 )
 
+@Serializable
 data class NetworkCreateTask(
     val lifeAreaId: UUID? = null,
     val flowId: UUID? = null,
-    val payload: NetworkTaskPayload
+    val payload: TaskPayload
 )
 
+@Serializable
 data class PatchPayload(
     val title: String? = null,
     val source: String? = null,
@@ -110,7 +83,6 @@ data class PatchPayload(
     val assignees: List<String>? = null,
     val important: Boolean? = null,
     val description: String? = null,
-    val descriptionDelta: List<NetworkOp>? = null,
     val priority: Int? = null,
     val externalId: String? = null
 )
