@@ -8,7 +8,8 @@ import ru.kolesnik.potok.core.database.AppDatabase
 import ru.kolesnik.potok.core.datasource.repository.*
 import ru.kolesnik.potok.core.database.dao.*
 import ru.kolesnik.potok.core.network.api.*
-import ru.kolesnik.potok.core.network.api.CommentApi
+import ru.kolesnik.potok.core.network.repository.*
+import ru.kolesnik.potok.core.network.SyncFullDataSource
 import javax.inject.Singleton
 
 @Module
@@ -19,31 +20,31 @@ object DataModule {
     @Provides
     @Singleton
     fun provideLifeAreaRepository(
-        api: LifeAreaApi,
+        dataSource: SyncFullDataSource,
         lifeAreaDao: LifeAreaDao,
         lifeFlowDao: LifeFlowDao,
         taskDao: TaskDao
-    ): LifeAreaRepository = LifeAreaRepositoryImpl(api, lifeAreaDao, lifeFlowDao, taskDao)
+    ): LifeAreaRepository = LifeAreaRepositoryImpl(dataSource, lifeAreaDao, lifeFlowDao, taskDao)
 
     // Репозиторий для LifeFlow
     @Provides
     @Singleton
     fun provideLifeFlowRepository(
-        api: LifeFlowApi,
+        dataSource: SyncFullDataSource,
         lifeFlowDao: LifeFlowDao,
         taskDao: TaskDao
-    ): LifeFlowRepository = LifeFlowRepositoryImpl(api, lifeFlowDao, taskDao)
+    ): FlowRepository = FlowRepositoryImpl(dataSource, lifeFlowDao, taskDao)
 
     // Репозиторий для задач
     @Provides
     @Singleton
     fun provideTaskRepository(
-        api: TaskApi,
+        dataSource: SyncFullDataSource,
         taskDao: TaskDao,
         taskAssigneeDao: TaskAssigneeDao,
         checklistTaskDao: ChecklistTaskDao,
         taskCommentDao: TaskCommentDao
-    ): TaskRepository = TaskRepositoryImpl(api, taskDao, taskAssigneeDao, checklistTaskDao, taskCommentDao)
+    ): TaskRepository = TaskRepositoryImpl(dataSource, taskDao, taskAssigneeDao, checklistTaskDao, taskCommentDao)
 
     // Репозиторий для чек-листов
     @Provides
@@ -52,14 +53,6 @@ object DataModule {
         api: ChecklistApi,
         checklistTaskDao: ChecklistTaskDao
     ): ChecklistRepository = ChecklistRepositoryImpl(api, checklistTaskDao)
-
-    // Репозиторий для комментариев
-/*    @Provides
-    @Singleton
-    fun provideCommentRepository(
-        api: CommentApi, // Предполагается, что у вас есть API для комментариев
-        taskCommentDao: TaskCommentDao
-    ): TaskCommentRepository = TaskCommentRepositoryImpl(api, taskCommentDao)*/
 
     // Репозиторий для поиска
     @Provides
@@ -71,7 +64,14 @@ object DataModule {
     @Provides
     @Singleton
     fun provideSyncRepository(
-        api: LifeAreaApi,
+        dataSource: SyncFullDataSource,
         db: AppDatabase
-    ): SyncRepository = SyncRepositoryImpl(api, db)
+    ): SyncRepository = SyncRepositoryImpl(dataSource, db)
+
+    @Provides
+    @Singleton
+    fun provideFullProjectRepository(
+        dataSource: SyncFullDataSource,
+        db: AppDatabase
+    ): FullProjectRepository = FullProjectRepositoryImpl(dataSource, db)
 }

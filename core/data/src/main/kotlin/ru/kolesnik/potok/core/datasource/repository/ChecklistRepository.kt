@@ -59,8 +59,8 @@ fun ChecklistTaskDTO.toChecklistEntity(taskId: UUID): ChecklistTaskEntity = Chec
     id = id,
     taskCardId = taskId,
     title = title,
-    done = done,
-    deadline = deadline,
-    placement = placement,
-    responsibles = responsibles
+    done = done ?: false,
+    placement = placement ?: 0,
+    responsibles = responsibles,
+    deadline = deadline
 )
