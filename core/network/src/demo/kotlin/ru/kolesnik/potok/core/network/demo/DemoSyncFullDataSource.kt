@@ -21,7 +21,9 @@ import ru.kolesnik.potok.core.network.network.Dispatcher
 import java.io.BufferedReader
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class DemoSyncFullDataSource @Inject constructor(
     @Dispatcher(AppDispatchers.IO) private val ioDispatcher: CoroutineDispatcher,
     private val networkJson: Json,
@@ -129,5 +131,17 @@ class DemoSyncFullDataSource @Inject constructor(
                 )
             }
         )
+    }
+
+    fun getFullLifeAreas(): List<LifeAreaDTO> {
+        return try {
+            runCatching { 
+                kotlinx.coroutines.runBlocking { 
+                    gtFullNew() 
+                } 
+            }.getOrDefault(emptyList())
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 }

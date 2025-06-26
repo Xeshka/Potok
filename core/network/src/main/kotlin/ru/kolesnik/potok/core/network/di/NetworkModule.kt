@@ -26,6 +26,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import ru.kolesnik.potok.core.network.AuthApi
 import ru.kolesnik.potok.core.network.BuildConfig
+import ru.kolesnik.potok.core.network.SyncFullDataSource
 import ru.kolesnik.potok.core.network.cookie.InMemoryCookieStore
 import ru.kolesnik.potok.core.network.cookie.JavaNetCookieJar
 import ru.kolesnik.potok.core.network.model.customSerializersModule
@@ -96,7 +97,7 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofitSyncFullNetworkApi(
+    fun provideAuthApi(
         callFactory: Call.Factory,
         networkJson: Json
     ): AuthApi {
@@ -106,6 +107,19 @@ internal object NetworkModule {
             .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(
+        callFactory: Call.Factory,
+        networkJson: Json
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(RANDM_BASE_URL)
+            .callFactory(callFactory)
+            .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
+            .build()
     }
 
     @Provides
@@ -332,5 +346,4 @@ internal object NetworkModule {
         private val ANSI_YELLOW = "\u001B[33m"
         private val ANSI_BLUE = "\u001B[34m"
     }
-
 }

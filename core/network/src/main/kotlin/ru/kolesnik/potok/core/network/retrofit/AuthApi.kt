@@ -41,14 +41,17 @@ internal class RetrofitNetworkFull @Inject constructor(
     ): List<EmployeeResponse> {
         return employeeNumbers.distinct().mapNotNull { employeeNumber ->
             employeeCache[employeeNumber] ?: run {
-                networkApi.getEmployee(employeeNumber, avatar = true).firstOrNull()
-                    .also {
-                        if (it != null) employeeCache[employeeNumber] = it
-                    }
+                try {
+                    networkApi.getEmployee(employeeNumber, avatar = true).firstOrNull()
+                        .also {
+                            if (it != null) employeeCache[employeeNumber] = it
+                        }
+                } catch (e: Exception) {
+                    null
+                }
             }
         }
     }
-
 }
 
 object GlobalJson {
