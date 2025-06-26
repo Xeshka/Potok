@@ -20,6 +20,9 @@ interface LifeAreaDao {
     @Delete
     suspend fun delete(area: LifeAreaEntity)
 
+    @Query("DELETE FROM life_areas WHERE id = :id")
+    suspend fun deleteById(id: UUID)
+
     @Query("DELETE FROM life_areas")
     suspend fun deleteAll()
 
@@ -31,6 +34,10 @@ interface LifeAreaDao {
     
     @Query("SELECT * FROM life_areas ORDER BY placement ASC")
     fun getAllFlow(): Flow<List<LifeAreaEntity>>
+
+    // Добавляем недостающий метод
+    @Query("SELECT * FROM life_areas ORDER BY placement ASC")
+    fun getAllLifeAreas(): Flow<List<LifeAreaEntity>>
 
     @Query("SELECT * FROM life_areas WHERE isDefault = 1 LIMIT 1")
     suspend fun getDefaultArea(): LifeAreaEntity?

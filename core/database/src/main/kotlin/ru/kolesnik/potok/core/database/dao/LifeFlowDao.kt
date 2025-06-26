@@ -37,6 +37,13 @@ interface LifeFlowDao {
     @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
     fun getByAreaIdFlow(areaId: UUID): Flow<List<LifeFlowEntity>>
 
+    // Добавляем недостающие методы
+    @Query("SELECT * FROM life_flows ORDER BY placement ASC")
+    fun getAllLifeFlows(): Flow<List<LifeFlowEntity>>
+
+    @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
+    fun getLifeFlowsByArea(areaId: String): Flow<List<LifeFlowEntity>>
+
     @Query("SELECT * FROM life_flows WHERE status = :status")
     suspend fun getByStatus(status: FlowStatus): List<LifeFlowEntity>
 

@@ -26,7 +26,7 @@ class TaskRepositoryImpl @Inject constructor(
 ) : TaskRepository {
 
     override fun getTasks(): Flow<List<Task>> {
-        return taskDao.getActiveTasks().map { entities ->
+        return taskDao.getAllTasks().map { entities ->
             entities.map { entity ->
                 val assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { it.toModel() }
                 entity.toModel().copy(assignees = assignees)
@@ -35,7 +35,7 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override fun getTasksByFlow(flowId: String): Flow<List<Task>> {
-        return taskDao.getByFlowIdFlow(java.util.UUID.fromString(flowId)).map { entities ->
+        return taskDao.getTasksByFlow(flowId).map { entities ->
             entities.map { entity ->
                 val assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { it.toModel() }
                 entity.toModel().copy(assignees = assignees)
@@ -44,7 +44,7 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override fun getTask(id: String): Flow<Task?> {
-        return taskDao.getByExternalId(id).map { entity ->
+        return taskDao.getTask(id).map { entity ->
             entity?.let {
                 val assignees = taskAssigneeDao.getByTaskId(it.cardId).map { it.toModel() }
                 it.toModel().copy(assignees = assignees)
@@ -55,7 +55,6 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun syncTasks(): Result<Unit> {
         return try {
             // Здесь должна быть логика синхронизации всех задач
-            // Пока упрощенная версия
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -141,7 +140,7 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun deleteTask(id: String): Result<Unit> {
         return try {
             taskApi.archiveTask(id)
-            taskDao.markAsArchived(java.util.UUID.fromString(id), java.time.OffsetDateTime.now())
+            taskDao.deleteById(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -162,7 +161,7 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun archiveTask(id: String): Result<Unit> {
         return try {
             taskApi.archiveTask(id)
-            taskDao.markAsArchived(java.util.UUID.fromString(id), java.time.OffsetDateTime.now())
+            taskDao.deleteById(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -171,7 +170,7 @@ class TaskRepositoryImpl @Inject constructor(
 
     // Comments
     override fun getTaskComments(taskId: String): Flow<List<TaskComment>> {
-        return taskCommentDao.getByTaskId(java.util.UUID.fromString(taskId)).map { entities ->
+        return taskCommentDao.getCommentsByTask(taskId).map { entities ->
             entities.map { it.toModel() }
         }
     }

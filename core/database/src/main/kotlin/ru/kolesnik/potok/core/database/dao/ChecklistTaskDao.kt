@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.ChecklistTaskEntity
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -19,6 +20,9 @@ interface ChecklistTaskDao {
     @Delete
     suspend fun delete(checkItem: ChecklistTaskEntity)
 
+    @Query("DELETE FROM checklist_tasks WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("DELETE FROM checklist_tasks WHERE taskCardId = :taskId")
     suspend fun deleteByTaskId(taskId: UUID)
 
@@ -30,6 +34,9 @@ interface ChecklistTaskDao {
 
     @Query("SELECT * FROM checklist_tasks WHERE taskCardId = :taskId ORDER BY placement ASC")
     suspend fun getByTaskId(taskId: UUID): List<ChecklistTaskEntity>
+
+    @Query("SELECT * FROM checklist_tasks WHERE taskCardId = :taskId ORDER BY placement ASC")
+    fun getChecklistTasksByTask(taskId: String): Flow<List<ChecklistTaskEntity>>
 
     @Query("SELECT COUNT(*) FROM checklist_tasks WHERE taskCardId = :taskId AND done = 1")
     suspend fun getCompletedCount(taskId: UUID): Int
@@ -49,7 +56,6 @@ interface ChecklistTaskDao {
     @Query("UPDATE checklist_tasks SET deadline = :deadline WHERE id = :itemId")
     suspend fun updateDeadline(itemId: UUID, deadline: OffsetDateTime?)
 
-    // Добавленные/обновленные методы для работы с responsibles
     @Query("UPDATE checklist_tasks SET responsibles = :responsibles WHERE id = :itemId")
     suspend fun updateResponsibles(itemId: UUID, responsibles: List<String>?)
 

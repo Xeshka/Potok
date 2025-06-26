@@ -31,10 +31,7 @@ class LifeFlowRepositoryImpl @Inject constructor(
 
     override suspend fun syncLifeFlows(): Result<Unit> {
         return try {
-            // Получаем все области жизни для синхронизации их потоков
-            val lifeAreas = ru.kolesnik.potok.core.database.dao.LifeAreaDao::class.java
-            // Здесь нужно получить все области и для каждой синхронизировать потоки
-            // Пока упрощенная версия
+            // Здесь должна быть логика синхронизации потоков
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

@@ -18,7 +18,7 @@ class ChecklistRepositoryImpl @Inject constructor(
 ) : ChecklistRepository {
 
     override fun getChecklistTasks(taskId: String): Flow<List<ChecklistTask>> {
-        return checklistTaskDao.getByTaskId(java.util.UUID.fromString(taskId)).map { entities ->
+        return checklistTaskDao.getChecklistTasksByTask(taskId).map { entities ->
             entities.map { it.toModel() }
         }
     }
@@ -62,7 +62,7 @@ class ChecklistRepositoryImpl @Inject constructor(
         return try {
             val uuid = java.util.UUID.fromString(id)
             checklistApi.deleteChecklistTask(uuid)
-            checklistTaskDao.deleteByTaskId(uuid)
+            checklistTaskDao.deleteById(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

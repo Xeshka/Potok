@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.database.dao
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 import ru.kolesnik.potok.core.database.entitys.TaskCommentEntity
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -19,6 +20,9 @@ interface TaskCommentDao {
     @Delete
     suspend fun delete(comment: TaskCommentEntity)
 
+    @Query("DELETE FROM task_comments WHERE id = :id")
+    suspend fun deleteById(id: UUID)
+
     @Query("DELETE FROM task_comments WHERE taskCardId = :taskId")
     suspend fun deleteByTaskId(taskId: UUID)
 
@@ -30,6 +34,9 @@ interface TaskCommentDao {
 
     @Query("SELECT * FROM task_comments WHERE taskCardId = :taskId")
     suspend fun getByTaskId(taskId: UUID): List<TaskCommentEntity>
+
+    @Query("SELECT * FROM task_comments WHERE taskCardId = :taskId")
+    fun getCommentsByTask(taskId: String): Flow<List<TaskCommentEntity>>
 
     @Query("SELECT * FROM task_comments WHERE parentCommentId = :parentId")
     suspend fun getReplies(parentId: UUID): List<TaskCommentEntity>
