@@ -3,7 +3,6 @@ package ru.kolesnik.potok.core.data.util
 import ru.kolesnik.potok.core.database.entitys.*
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.potok.*
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -11,65 +10,100 @@ import java.util.*
 fun LifeAreaDTO.toEntity(): LifeAreaEntity {
     return LifeAreaEntity(
         id = this.id,
-        name = this.name,
-        description = this.description,
-        color = this.color,
-        icon = this.icon,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+        title = this.title,
+        style = this.style,
+        tagsId = this.tagsId,
+        placement = this.placement,
+        isDefault = this.isDefault,
+        sharedInfo = this.sharedInfo?.let {
+            ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
+                areaId = this.id,
+                owner = it.owner,
+                recipients = it.recipients
+            )
+        },
+        isTheme = this.isTheme,
+        onlyPersonal = this.onlyPersonal
     )
 }
 
 fun LifeFlowDTO.toEntity(): LifeFlowEntity {
     return LifeFlowEntity(
         id = this.id,
-        name = this.name,
-        description = this.description,
-        lifeAreaId = this.lifeAreaId,
-        status = this.status?.name ?: "ACTIVE",
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+        areaId = this.areaId,
+        title = this.title,
+        style = this.style,
+        placement = this.placement,
+        status = this.status
     )
 }
 
 fun TaskRs.toEntity(): TaskEntity {
     return TaskEntity(
-        id = this.id,
+        cardId = this.cardId,
+        externalId = this.id,
+        internalId = this.internalId,
         title = this.title,
-        description = this.description,
-        status = this.status,
-        priority = this.priority,
-        isImportant = this.isImportant ?: false,
-        deadline = this.deadline,
-        lifeAreaId = this.lifeAreaId,
-        lifeFlowId = this.lifeFlowId,
-        assigneeIds = this.assigneeIds ?: emptyList(),
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now(),
-        completedAt = this.completedAt
+        subtitle = this.subtitle,
+        mainOrder = this.mainOrder,
+        source = this.source,
+        taskOwner = this.taskOwner,
+        creationDate = this.creationDate,
+        payload = this.payload.let { 
+            ru.kolesnik.potok.core.model.TaskPayload(
+                title = it.title,
+                source = it.source,
+                onMainPage = it.onMainPage,
+                deadline = it.deadline,
+                lifeArea = it.lifeArea,
+                lifeAreaId = it.lifeAreaId,
+                subtitle = it.subtitle,
+                userEdit = it.userEdit,
+                assignees = it.assignees,
+                important = it.important,
+                messageId = it.messageId,
+                fullMessage = it.fullMessage,
+                description = it.description,
+                priority = it.priority,
+                userChangeAssignee = it.userChangeAssignee,
+                organization = it.organization,
+                shortMessage = it.shortMessage,
+                externalId = it.externalId,
+                relatedAssignment = it.relatedAssignment,
+                meanSource = it.meanSource,
+                id = it.id
+            )
+        },
+        lifeAreaId = this.payload.lifeAreaId,
+        flowId = null,
+        lifeAreaPlacement = this.lifeAreaPlacement,
+        flowPlacement = this.flowPlacement,
+        commentCount = this.commentCount,
+        attachmentCount = this.attachmentCount
     )
 }
 
-fun TaskCommentRs.toEntity(taskId: UUID): CommentEntity {
-    return CommentEntity(
+fun TaskCommentDTO.toEntity(): TaskCommentEntity {
+    return TaskCommentEntity(
         id = this.id,
-        taskId = taskId,
-        authorId = this.authorId,
-        content = this.content,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+        taskCardId = UUID.randomUUID(), // Нужно передавать извне
+        parentCommentId = this.parentCommentId,
+        owner = this.owner,
+        text = this.text,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
 
-fun ChecklistRs.toEntity(taskId: UUID): ChecklistTaskEntity {
+fun ChecklistTaskDTO.toEntity(): ChecklistTaskEntity {
     return ChecklistTaskEntity(
         id = this.id,
-        taskId = taskId,
+        taskCardId = UUID.randomUUID(), // Нужно передавать извне
         title = this.title,
-        isCompleted = this.isCompleted ?: false,
-        position = this.position ?: 0,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+        done = this.done ?: false,
+        placement = this.placement ?: 0,
+        responsibles = this.responsibles,
+        deadline = this.deadline
     )
 }
 
@@ -77,51 +111,79 @@ fun ChecklistRs.toEntity(taskId: UUID): ChecklistTaskEntity {
 fun LifeAreaEntity.toModel(): LifeArea {
     return LifeArea(
         id = this.id,
-        name = this.name,
-        description = this.description,
-        color = this.color,
-        icon = this.icon,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
+        title = this.title,
+        style = this.style,
+        tagsId = this.tagsId,
+        placement = this.placement,
+        isDefault = this.isDefault,
+        isTheme = this.isTheme,
+        shared = this.sharedInfo
     )
 }
 
 fun LifeFlowEntity.toModel(): LifeFlow {
     return LifeFlow(
-        id = this.id,
-        name = this.name,
-        description = this.description,
-        lifeAreaId = this.lifeAreaId,
-        status = this.status,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
+        id = this.id.toString(),
+        areaId = this.areaId.toString(),
+        title = this.title,
+        style = this.style,
+        placement = this.placement,
+        status = when (this.status) {
+            ru.kolesnik.potok.core.network.model.api.FlowStatus.NEW -> ru.kolesnik.potok.core.model.FlowStatus.NEW
+            ru.kolesnik.potok.core.network.model.api.FlowStatus.IN_PROGRESS -> ru.kolesnik.potok.core.model.FlowStatus.IN_PROGRESS
+            ru.kolesnik.potok.core.network.model.api.FlowStatus.COMPLETED -> ru.kolesnik.potok.core.model.FlowStatus.COMPLETED
+            ru.kolesnik.potok.core.network.model.api.FlowStatus.CUSTOM -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
+            null -> ru.kolesnik.potok.core.model.FlowStatus.NEW
+        }
     )
 }
 
 fun TaskEntity.toModel(): Task {
     return Task(
-        id = this.id,
+        id = this.externalId,
         title = this.title,
-        description = this.description,
-        status = this.status,
-        priority = this.priority,
-        isImportant = this.isImportant,
-        deadline = this.deadline,
+        subtitle = this.subtitle,
+        mainOrder = this.mainOrder,
+        source = this.source,
+        taskOwner = this.taskOwner,
+        creationDate = this.creationDate,
+        payload = this.payload,
+        internalId = this.internalId,
+        lifeAreaPlacement = this.lifeAreaPlacement,
+        flowPlacement = this.flowPlacement,
+        assignees = emptyList(), // Будет заполнено отдельно
+        commentCount = this.commentCount,
+        attachmentCount = this.attachmentCount,
         lifeAreaId = this.lifeAreaId,
-        lifeFlowId = this.lifeFlowId,
-        assigneeIds = this.assigneeIds,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        completedAt = this.completedAt
+        flowId = this.flowId
     )
 }
 
-fun CommentEntity.toModel(): TaskComment {
+fun TaskEntity.toTaskMain(): TaskMain {
+    return TaskMain(
+        id = this.externalId ?: this.cardId.toString(),
+        title = this.title,
+        source = this.source,
+        taskOwner = this.taskOwner,
+        creationDate = this.creationDate,
+        deadline = this.payload.deadline,
+        internalId = this.internalId,
+        lifeAreaPlacement = this.lifeAreaPlacement,
+        flowPlacement = this.flowPlacement,
+        assignees = emptyList(), // Будет заполнено отдельно
+        commentCount = this.commentCount,
+        attachmentCount = this.attachmentCount,
+        lifeAreaId = this.lifeAreaId,
+        flowId = this.flowId
+    )
+}
+
+fun TaskCommentEntity.toModel(): TaskComment {
     return TaskComment(
         id = this.id,
-        taskId = this.taskId,
-        authorId = this.authorId,
-        content = this.content,
+        parentCommentId = this.parentCommentId,
+        owner = this.owner,
+        text = this.text,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt
     )
@@ -130,159 +192,17 @@ fun CommentEntity.toModel(): TaskComment {
 fun ChecklistTaskEntity.toModel(): ChecklistTask {
     return ChecklistTask(
         id = this.id,
-        taskId = this.taskId,
         title = this.title,
-        isCompleted = this.isCompleted,
-        position = this.position,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
+        done = this.done,
+        placement = this.placement,
+        responsibles = this.responsibles ?: emptyList(),
+        deadline = this.deadline
     )
 }
 
-// Network DTO -> Model mappers (for search results without saving to DB)
-fun LifeAreaDTO.toModel(): LifeArea {
-    return LifeArea(
-        id = this.id,
-        name = this.name,
-        description = this.description,
-        color = this.color,
-        icon = this.icon,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
-    )
-}
-
-fun LifeFlowDTO.toModel(): LifeFlow {
-    return LifeFlow(
-        id = this.id,
-        name = this.name,
-        description = this.description,
-        lifeAreaId = this.lifeAreaId,
-        status = this.status?.name ?: "ACTIVE",
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
-    )
-}
-
-fun TaskRs.toModel(): Task {
-    return Task(
-        id = this.id,
-        title = this.title,
-        description = this.description,
-        status = this.status,
-        priority = this.priority,
-        isImportant = this.isImportant ?: false,
-        deadline = this.deadline,
-        lifeAreaId = this.lifeAreaId,
-        lifeFlowId = this.lifeFlowId,
-        assigneeIds = this.assigneeIds ?: emptyList(),
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now(),
-        completedAt = this.completedAt
-    )
-}
-
-fun TaskCommentRs.toModel(): TaskComment {
-    return TaskComment(
-        id = this.id,
-        taskId = UUID.randomUUID(), // Временное значение, должно быть передано извне
-        authorId = this.authorId,
-        content = this.content,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
-    )
-}
-
-fun ChecklistRs.toModel(): ChecklistTask {
-    return ChecklistTask(
-        id = this.id,
-        taskId = UUID.randomUUID(), // Временное значение, должно быть передано извне
-        title = this.title,
-        isCompleted = this.isCompleted ?: false,
-        position = this.position ?: 0,
-        createdAt = this.createdAt ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt ?: OffsetDateTime.now()
-    )
-}
-
-// Employee mappers
-fun EmployeeResponse.toModel(): Employee {
-    return Employee(
-        id = this.id,
-        name = this.name,
-        email = this.email,
-        avatar = this.avatar,
-        position = this.position,
-        department = this.department
-    )
-}
-
-// Model -> Request mappers
-fun Task.toCreateRequest(): TaskRs {
-    return TaskRs(
-        id = this.id,
-        title = this.title,
-        description = this.description,
-        status = this.status,
-        priority = this.priority,
-        isImportant = this.isImportant,
-        deadline = this.deadline,
-        lifeAreaId = this.lifeAreaId,
-        lifeFlowId = this.lifeFlowId,
-        assigneeIds = this.assigneeIds,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt,
-        completedAt = this.completedAt
-    )
-}
-
-fun TaskComment.toCreateRequest(): TaskCommentRq {
-    return TaskCommentRq(
-        id = this.id,
-        taskId = this.taskId,
-        authorId = this.authorId,
-        content = this.content,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
-    )
-}
-
-fun ChecklistTask.toCreateRequest(): ChecklistRq {
-    return ChecklistRq(
-        id = this.id,
-        taskId = this.taskId,
-        title = this.title,
-        isCompleted = this.isCompleted,
-        position = this.position,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
-    )
-}
-
-fun LifeArea.toCreateRequest(): LifeAreaDTO {
-    return LifeAreaDTO(
-        id = this.id,
-        name = this.name,
-        description = this.description,
-        color = this.color,
-        icon = this.icon,
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
-    )
-}
-
-fun LifeFlow.toCreateRequest(): LifeFlowDTO {
-    return LifeFlowDTO(
-        id = this.id,
-        name = this.name,
-        description = this.description,
-        lifeAreaId = this.lifeAreaId,
-        status = try { 
-            FlowStatus.valueOf(this.status) 
-        } catch (e: IllegalArgumentException) { 
-            FlowStatus.ACTIVE 
-        },
-        createdAt = this.createdAt,
-        updatedAt = this.updatedAt
+fun TaskAssigneeEntity.toModel(): TaskAssignee {
+    return TaskAssignee(
+        employeeId = this.employeeId,
+        complete = this.complete
     )
 }

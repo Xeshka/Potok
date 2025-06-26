@@ -2,35 +2,59 @@ package ru.kolesnik.potok.core.data.repository
 
 import ru.kolesnik.potok.core.network.SyncFullDataSource
 import ru.kolesnik.potok.core.network.result.Result
+import ru.kolesnik.potok.core.database.dao.LifeAreaDao
+import ru.kolesnik.potok.core.database.dao.LifeFlowDao
+import ru.kolesnik.potok.core.database.dao.TaskDao
+import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
+import ru.kolesnik.potok.core.data.util.toEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SyncRepositoryImpl @Inject constructor(
     private val syncFullDataSource: SyncFullDataSource,
-    private val lifeAreaRepository: LifeAreaRepository,
-    private val lifeFlowRepository: LifeFlowRepository,
-    private val taskRepository: TaskRepository
+    private val lifeAreaDao: LifeAreaDao,
+    private val lifeFlowDao: LifeFlowDao,
+    private val taskDao: TaskDao,
+    private val taskAssigneeDao: TaskAssigneeDao
 ) : SyncRepository {
 
     override suspend fun syncAll(): Result<Unit> {
         return try {
-            // Синхронизируем все данные по очереди
-            when (val lifeAreasResult = lifeAreaRepository.syncLifeAreas()) {
-                is Result.Error -> return lifeAreasResult
-                is Result.Success -> Unit
+            val fullData = syncFullDataSource.gtFullNew()
+            
+            // Синхронизируем области жизни
+            val lifeAreaEntities = fullData.map { it.toEntity() }
+            lifeAreaDao.insertAll(lifeAreaEntities)
+            
+            // Синхронизируем потоки
+            fullData.forEach { lifeArea ->
+                lifeArea.flows?.let { flows ->
+                    val flowEntities = flows.map { it.toEntity() }
+                    lifeFlowDao.insertAll(flowEntities)
+                    
+                    // Синхронизируем задачи
+                    flows.forEach { flow ->
+                        flow.tasks?.let { tasks ->
+                            val taskEntities = tasks.map { it.toEntity() }
+                            taskDao.insertAll(taskEntities)
+                            
+                            // Синхронизируем назначенных
+                            tasks.forEach { task ->
+                                task.assignees?.forEach { assignee ->
+                                    val assigneeEntity = ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity(
+                                        taskCardId = task.cardId,
+                                        employeeId = assignee.employeeId,
+                                        complete = assignee.complete
+                                    )
+                                    taskAssigneeDao.insert(assigneeEntity)
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            when (val lifeFlowsResult = lifeFlowRepository.syncLifeFlows()) {
-                is Result.Error -> return lifeFlowsResult
-                is Result.Success -> Unit
-            }
-
-            when (val tasksResult = taskRepository.syncTasks()) {
-                is Result.Error -> return tasksResult
-                is Result.Success -> Unit
-            }
-
+            
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -38,10 +62,6 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncFullProject(): Result<Unit> {
-        return try {
-            syncFullDataSource.syncFullData()
-        } catch (e: Exception) {
-            Result.Error(e)
-        }
+        return syncAll()
     }
 }

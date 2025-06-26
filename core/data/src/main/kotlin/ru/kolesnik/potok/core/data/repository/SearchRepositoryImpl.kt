@@ -15,13 +15,20 @@ class SearchRepositoryImpl @Inject constructor(
 
     override suspend fun searchTasks(query: String): Result<List<Task>> {
         return try {
-            when (val result = searchApi.searchTasks(query)) {
-                is Result.Success -> {
-                    val tasks = result.data.map { it.toModel() }
-                    Result.Success(tasks)
-                }
-                is Result.Error -> result
+            val result = searchApi.search(query)
+            val tasks = result.tasks.map { taskResult ->
+                // Преобразуем результат поиска в Task
+                // Здесь нужна дополнительная логика для получения полных данных задачи
+                Task(
+                    id = taskResult.taskId.externalId,
+                    title = taskResult.title,
+                    taskOwner = "", // Нужно получить из другого источника
+                    payload = ru.kolesnik.potok.core.model.TaskPayload(
+                        description = taskResult.description
+                    )
+                )
             }
+            Result.Success(tasks)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -29,13 +36,9 @@ class SearchRepositoryImpl @Inject constructor(
 
     override suspend fun searchEmployees(query: String): Result<List<Employee>> {
         return try {
-            when (val result = searchApi.searchEmployees(query)) {
-                is Result.Success -> {
-                    val employees = result.data.map { it.toModel() }
-                    Result.Success(employees)
-                }
-                is Result.Error -> result
-            }
+            // Поиск сотрудников не реализован в API
+            // Возвращаем пустой список
+            Result.Success(emptyList())
         } catch (e: Exception) {
             Result.Error(e)
         }

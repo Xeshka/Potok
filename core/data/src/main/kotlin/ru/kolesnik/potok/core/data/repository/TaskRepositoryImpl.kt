@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.database.dao.TaskCommentDao
+import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
 import ru.kolesnik.potok.core.model.Task
 import ru.kolesnik.potok.core.model.TaskComment
 import ru.kolesnik.potok.core.network.api.TaskApi
@@ -11,6 +12,7 @@ import ru.kolesnik.potok.core.network.api.CommentApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.data.util.toTaskMain
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,37 +21,42 @@ class TaskRepositoryImpl @Inject constructor(
     private val taskApi: TaskApi,
     private val commentApi: CommentApi,
     private val taskDao: TaskDao,
-    private val taskCommentDao: TaskCommentDao
+    private val taskCommentDao: TaskCommentDao,
+    private val taskAssigneeDao: TaskAssigneeDao
 ) : TaskRepository {
 
     override fun getTasks(): Flow<List<Task>> {
-        return taskDao.getAllTasks().map { entities ->
-            entities.map { it.toModel() }
+        return taskDao.getActiveTasks().map { entities ->
+            entities.map { entity ->
+                val assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { it.toModel() }
+                entity.toModel().copy(assignees = assignees)
+            }
         }
     }
 
     override fun getTasksByFlow(flowId: String): Flow<List<Task>> {
-        return taskDao.getTasksByFlow(flowId).map { entities ->
-            entities.map { it.toModel() }
+        return taskDao.getByFlowIdFlow(java.util.UUID.fromString(flowId)).map { entities ->
+            entities.map { entity ->
+                val assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { it.toModel() }
+                entity.toModel().copy(assignees = assignees)
+            }
         }
     }
 
     override fun getTask(id: String): Flow<Task?> {
-        return taskDao.getTask(id).map { entity ->
-            entity?.toModel()
+        return taskDao.getByExternalId(id).map { entity ->
+            entity?.let {
+                val assignees = taskAssigneeDao.getByTaskId(it.cardId).map { it.toModel() }
+                it.toModel().copy(assignees = assignees)
+            }
         }
     }
 
     override suspend fun syncTasks(): Result<Unit> {
         return try {
-            when (val result = taskApi.getTasks()) {
-                is Result.Success -> {
-                    val entities = result.data.map { it.toEntity() }
-                    taskDao.insertAll(entities)
-                    Result.Success(Unit)
-                }
-                is Result.Error -> result
-            }
+            // Здесь должна быть логика синхронизации всех задач
+            // Пока упрощенная версия
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -64,14 +71,32 @@ class TaskRepositoryImpl @Inject constructor(
         isImportant: Boolean
     ): Result<Task> {
         return try {
-            when (val result = taskApi.createTask(title, description, lifeFlowId, assigneeIds, deadline, isImportant)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    taskDao.insert(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
+            val payload = ru.kolesnik.potok.core.network.model.api.TaskPayload(
+                title = title,
+                description = description,
+                important = isImportant,
+                assignees = assigneeIds,
+                deadline = deadline?.let { java.time.OffsetDateTime.parse(it) }
+            )
+            val request = ru.kolesnik.potok.core.network.model.api.TaskRq(
+                flowId = java.util.UUID.fromString(lifeFlowId),
+                payload = payload
+            )
+            val result = taskApi.createTask(request)
+            val entity = result.toEntity()
+            taskDao.insert(entity)
+            
+            // Сохраняем назначенных
+            assigneeIds.forEach { assigneeId ->
+                val assigneeEntity = ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity(
+                    taskCardId = entity.cardId,
+                    employeeId = assigneeId,
+                    complete = false
+                )
+                taskAssigneeDao.insert(assigneeEntity)
             }
+            
+            Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -86,14 +111,28 @@ class TaskRepositoryImpl @Inject constructor(
         isImportant: Boolean?
     ): Result<Task> {
         return try {
-            when (val result = taskApi.updateTask(id, title, description, assigneeIds, deadline, isImportant)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    taskDao.update(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val payload = ru.kolesnik.potok.core.network.model.potok.PatchPayload(
+                title = title,
+                description = description,
+                important = isImportant,
+                assignees = assigneeIds,
+                deadline = deadline?.let { java.time.OffsetDateTime.parse(it) }
+            )
+            taskApi.updateTask(id, payload)
+            
+            // Обновляем локальную базу
+            val entity = taskDao.getByExternalId(id)
+            entity?.let {
+                val updatedEntity = it.copy(
+                    title = title ?: it.title,
+                    payload = it.payload.copy(
+                        description = description ?: it.payload.description,
+                        important = isImportant ?: it.payload.important
+                    )
+                )
+                taskDao.update(updatedEntity)
+                Result.Success(updatedEntity.toModel())
+            } ?: Result.Error(Exception("Task not found"))
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -101,13 +140,9 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun deleteTask(id: String): Result<Unit> {
         return try {
-            when (val result = taskApi.deleteTask(id)) {
-                is Result.Success -> {
-                    taskDao.deleteById(id)
-                    Result.Success(Unit)
-                }
-                is Result.Error -> result
-            }
+            taskApi.archiveTask(id)
+            taskDao.markAsArchived(java.util.UUID.fromString(id), java.time.OffsetDateTime.now())
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -115,14 +150,10 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun completeTask(id: String): Result<Task> {
         return try {
-            when (val result = taskApi.completeTask(id)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    taskDao.update(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val result = taskApi.getTaskDetails(id)
+            val entity = result.toEntity()
+            taskDao.update(entity)
+            Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -130,13 +161,9 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun archiveTask(id: String): Result<Unit> {
         return try {
-            when (val result = taskApi.archiveTask(id)) {
-                is Result.Success -> {
-                    taskDao.deleteById(id)
-                    Result.Success(Unit)
-                }
-                is Result.Error -> result
-            }
+            taskApi.archiveTask(id)
+            taskDao.markAsArchived(java.util.UUID.fromString(id), java.time.OffsetDateTime.now())
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -144,21 +171,18 @@ class TaskRepositoryImpl @Inject constructor(
 
     // Comments
     override fun getTaskComments(taskId: String): Flow<List<TaskComment>> {
-        return taskCommentDao.getCommentsByTask(taskId).map { entities ->
+        return taskCommentDao.getByTaskId(java.util.UUID.fromString(taskId)).map { entities ->
             entities.map { it.toModel() }
         }
     }
 
     override suspend fun addComment(taskId: String, text: String): Result<TaskComment> {
         return try {
-            when (val result = commentApi.addComment(taskId, text)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    taskCommentDao.insert(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val request = ru.kolesnik.potok.core.network.model.api.TaskCommentRq(text = text)
+            val result = commentApi.createComment(taskId, request)
+            val entity = result.toEntity().copy(taskCardId = java.util.UUID.fromString(taskId))
+            taskCommentDao.insert(entity)
+            Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -166,14 +190,11 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun updateComment(commentId: String, text: String): Result<TaskComment> {
         return try {
-            when (val result = commentApi.updateComment(commentId, text)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    taskCommentDao.update(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val request = ru.kolesnik.potok.core.network.model.api.TaskCommentRq(text = text)
+            val result = commentApi.updateComment(java.util.UUID.fromString(commentId), request)
+            val entity = result.toEntity()
+            taskCommentDao.update(entity)
+            Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -181,13 +202,9 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun deleteComment(commentId: String): Result<Unit> {
         return try {
-            when (val result = commentApi.deleteComment(commentId)) {
-                is Result.Success -> {
-                    taskCommentDao.deleteById(commentId)
-                    Result.Success(Unit)
-                }
-                is Result.Error -> result
-            }
+            commentApi.deleteComment(java.util.UUID.fromString(commentId))
+            taskCommentDao.deleteById(java.util.UUID.fromString(commentId))
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }

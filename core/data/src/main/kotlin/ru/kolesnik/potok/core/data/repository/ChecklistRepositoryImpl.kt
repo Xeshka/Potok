@@ -18,21 +18,18 @@ class ChecklistRepositoryImpl @Inject constructor(
 ) : ChecklistRepository {
 
     override fun getChecklistTasks(taskId: String): Flow<List<ChecklistTask>> {
-        return checklistTaskDao.getChecklistTasksByTask(taskId).map { entities ->
+        return checklistTaskDao.getByTaskId(java.util.UUID.fromString(taskId)).map { entities ->
             entities.map { it.toModel() }
         }
     }
 
     override suspend fun createChecklistTask(taskId: String, title: String): Result<ChecklistTask> {
         return try {
-            when (val result = checklistApi.createChecklistTask(taskId, title)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    checklistTaskDao.insert(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val request = ru.kolesnik.potok.core.network.model.api.ChecklistTaskTitleRq(title = title)
+            val result = checklistApi.createChecklistTask(taskId, request)
+            val entity = result.toEntity().copy(taskCardId = java.util.UUID.fromString(taskId))
+            checklistTaskDao.insert(entity)
+            Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -40,14 +37,22 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun updateChecklistTask(id: String, title: String?, isCompleted: Boolean?): Result<ChecklistTask> {
         return try {
-            when (val result = checklistApi.updateChecklistTask(id, title, isCompleted)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    checklistTaskDao.update(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
+            val uuid = java.util.UUID.fromString(id)
+            
+            title?.let {
+                val titleRequest = ru.kolesnik.potok.core.network.model.api.ChecklistTaskTitleRq(title = it)
+                checklistApi.updateChecklistTaskTitle(uuid, titleRequest)
             }
+            
+            isCompleted?.let {
+                checklistApi.updateChecklistTaskStatus(uuid, it)
+            }
+            
+            // Получаем обновленную задачу из базы
+            val entity = checklistTaskDao.getById(uuid)
+            entity?.let {
+                Result.Success(it.toModel())
+            } ?: Result.Error(Exception("Checklist task not found"))
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -55,13 +60,10 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun deleteChecklistTask(id: String): Result<Unit> {
         return try {
-            when (val result = checklistApi.deleteChecklistTask(id)) {
-                is Result.Success -> {
-                    checklistTaskDao.deleteById(id)
-                    Result.Success(Unit)
-                }
-                is Result.Error -> result
-            }
+            val uuid = java.util.UUID.fromString(id)
+            checklistApi.deleteChecklistTask(uuid)
+            checklistTaskDao.deleteByTaskId(uuid)
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -69,14 +71,15 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun toggleChecklistTask(id: String): Result<ChecklistTask> {
         return try {
-            when (val result = checklistApi.toggleChecklistTask(id)) {
-                is Result.Success -> {
-                    val entity = result.data.toEntity()
-                    checklistTaskDao.update(entity)
-                    Result.Success(entity.toModel())
-                }
-                is Result.Error -> result
-            }
+            val uuid = java.util.UUID.fromString(id)
+            val entity = checklistTaskDao.getById(uuid)
+            entity?.let {
+                val newStatus = !it.done
+                val result = checklistApi.updateChecklistTaskStatus(uuid, newStatus)
+                val updatedEntity = result.toEntity().copy(taskCardId = it.taskCardId)
+                checklistTaskDao.update(updatedEntity)
+                Result.Success(updatedEntity.toModel())
+            } ?: Result.Error(Exception("Checklist task not found"))
         } catch (e: Exception) {
             Result.Error(e)
         }
