@@ -19,15 +19,13 @@ fun LifeAreaDTO.toDomainModel(): LifeArea {
         placement = this.placement,
         isDefault = this.isDefault,
         isTheme = this.isTheme,
-        shared = this.sharedInfo?.toDomainModel()
-    )
-}
-
-fun LifeAreaSharedInfo.toDomainModel(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo {
-    return ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-        areaId = java.util.UUID.randomUUID(), // Будет переопределено
-        owner = this.owner,
-        recipients = this.recipients
+        shared = this.sharedInfo?.let { sharedInfo ->
+            ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
+                areaId = this.id, // Используем ID области жизни
+                owner = sharedInfo.owner,
+                recipients = sharedInfo.recipients
+            )
+        }
     )
 }
 
@@ -59,42 +57,52 @@ fun TaskRs.toDomainModel(): Task {
         source = this.source,
         taskOwner = this.taskOwner,
         creationDate = this.creationDate,
-        payload = this.payload.toDomainModel(),
+        payload = ru.kolesnik.potok.core.model.TaskPayload(
+            title = this.payload.title,
+            source = this.payload.source,
+            onMainPage = this.payload.onMainPage,
+            deadline = this.payload.deadline,
+            lifeArea = this.payload.lifeArea,
+            lifeAreaId = this.payload.lifeAreaId,
+            subtitle = this.payload.subtitle,
+            userEdit = this.payload.userEdit,
+            assignees = this.payload.assignees,
+            important = this.payload.important,
+            messageId = this.payload.messageId,
+            fullMessage = this.payload.fullMessage,
+            description = this.payload.description,
+            priority = this.payload.priority,
+            userChangeAssignee = this.payload.userChangeAssignee,
+            organization = this.payload.organization,
+            shortMessage = this.payload.shortMessage,
+            externalId = this.payload.externalId,
+            relatedAssignment = this.payload.relatedAssignment,
+            meanSource = this.payload.meanSource,
+            id = this.payload.id
+        ),
         internalId = this.internalId,
         lifeAreaPlacement = this.lifeAreaPlacement,
         flowPlacement = this.flowPlacement,
-        assignees = this.assignees?.map { it.toDomainModel() } ?: emptyList(),
+        assignees = this.assignees?.map { assignee ->
+            TaskAssignee(
+                employeeId = assignee.employeeId,
+                complete = assignee.complete
+            )
+        } ?: emptyList(),
         commentCount = this.commentCount,
         attachmentCount = this.attachmentCount,
-        checkList = this.checkList?.map { it.toDomainModel() },
+        checkList = this.checkList?.map { checklistItem ->
+            ChecklistTask(
+                id = checklistItem.id,
+                title = checklistItem.title,
+                done = checklistItem.done ?: false,
+                placement = checklistItem.placement ?: 0,
+                responsibles = checklistItem.responsibles ?: emptyList(),
+                deadline = checklistItem.deadline
+            )
+        },
         lifeAreaId = this.payload.lifeAreaId,
         flowId = null // Будет установлено отдельно
-    )
-}
-
-fun TaskPayload.toDomainModel(): ru.kolesnik.potok.core.model.TaskPayload {
-    return ru.kolesnik.potok.core.model.TaskPayload(
-        title = this.title,
-        source = this.source,
-        onMainPage = this.onMainPage,
-        deadline = this.deadline,
-        lifeArea = this.lifeArea,
-        lifeAreaId = this.lifeAreaId,
-        subtitle = this.subtitle,
-        userEdit = this.userEdit,
-        assignees = this.assignees,
-        important = this.important,
-        messageId = this.messageId,
-        fullMessage = this.fullMessage,
-        description = this.description,
-        priority = this.priority,
-        userChangeAssignee = this.userChangeAssignee,
-        organization = this.organization,
-        shortMessage = this.shortMessage,
-        externalId = this.externalId,
-        relatedAssignment = this.relatedAssignment,
-        meanSource = this.meanSource,
-        id = this.id
     )
 }
 
@@ -148,32 +156,28 @@ fun Task.toNetworkCreateRequest(): NetworkCreateTask {
     return NetworkCreateTask(
         lifeAreaId = this.lifeAreaId,
         flowId = this.flowId,
-        payload = this.payload?.toNetworkPayload() ?: NetworkTaskPayload()
-    )
-}
-
-fun ru.kolesnik.potok.core.model.TaskPayload.toNetworkPayload(): NetworkTaskPayload {
-    return NetworkTaskPayload(
-        title = this.title,
-        source = this.source,
-        onMainPage = this.onMainPage,
-        deadline = this.deadline,
-        lifeArea = this.lifeArea,
-        lifeAreaId = this.lifeAreaId,
-        subtitle = this.subtitle,
-        userEdit = this.userEdit,
-        assignees = this.assignees,
-        important = this.important,
-        messageId = this.messageId,
-        fullMessage = this.fullMessage,
-        description = this.description,
-        priority = this.priority,
-        userChangeAssignee = this.userChangeAssignee,
-        organization = this.organization,
-        shortMessage = this.shortMessage,
-        externalId = this.externalId,
-        relatedAssignment = this.relatedAssignment,
-        meanSource = this.meanSource,
-        id = this.id
+        payload = NetworkTaskPayload(
+            title = this.payload?.title,
+            source = this.payload?.source,
+            onMainPage = this.payload?.onMainPage,
+            deadline = this.payload?.deadline,
+            lifeArea = this.payload?.lifeArea,
+            lifeAreaId = this.payload?.lifeAreaId,
+            subtitle = this.payload?.subtitle,
+            userEdit = this.payload?.userEdit,
+            assignees = this.payload?.assignees,
+            important = this.payload?.important,
+            messageId = this.payload?.messageId,
+            fullMessage = this.payload?.fullMessage,
+            description = this.payload?.description,
+            priority = this.payload?.priority,
+            userChangeAssignee = this.payload?.userChangeAssignee,
+            organization = this.payload?.organization,
+            shortMessage = this.payload?.shortMessage,
+            externalId = this.payload?.externalId,
+            relatedAssignment = this.payload?.relatedAssignment,
+            meanSource = this.payload?.meanSource,
+            id = this.payload?.id
+        )
     )
 }
