@@ -1,18 +1,19 @@
 package ru.kolesnik.potok.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import ru.kolesnik.potok.core.designsystem.theme.AppTheme as DesignSystemTheme
+import ru.kolesnik.potok.core.designsystem.AppTheme
 
+/**
+ * Обертка для темы приложения
+ */
 @Composable
 fun AppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    DesignSystemTheme(
+    AppTheme(
         darkTheme = darkTheme,
-        disableDynamicTheming = !dynamicColor,
+        disableDynamicTheming = true,
         content = content
     )
 }

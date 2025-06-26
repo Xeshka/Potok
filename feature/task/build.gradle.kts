@@ -5,7 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "ru.kolesnik.potok.feature.lifearea"
+    namespace = "ru.kolesnik.potok.feature.task"
+    
+    defaultConfig {
+        minSdk = 26 // Исправляем minSdk
+    }
 }
 
 dependencies {

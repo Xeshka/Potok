@@ -6,6 +6,10 @@ plugins {
 
 android {
     namespace = "ru.kolesnik.potok.feature.lifearea"
+    
+    defaultConfig {
+        minSdk = 26 // Исправляем minSdk
+    }
 }
 
 dependencies {

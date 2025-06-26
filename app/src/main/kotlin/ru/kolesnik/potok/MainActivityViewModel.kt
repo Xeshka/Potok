@@ -3,30 +3,31 @@ package ru.kolesnik.potok
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainActivityViewModel @Inject constructor() : ViewModel() {
 
-    val uiState: StateFlow<MainActivityUiState> = 
-        // Пока что используем статичные данные, позже можно подключить DataStore
-        flowOf(
-            UserData(
-                themeBrand = ThemeBrand.DEFAULT,
-                useDarkTheme = false,
-                useDynamicColor = false
+    private val _uiState = MutableStateFlow<MainActivityUiState>(MainActivityUiState.Loading)
+    val uiState: StateFlow<MainActivityUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            // Симулируем загрузку пользовательских настроек
+            // В реальном приложении здесь будет загрузка из DataStore
+            _uiState.value = MainActivityUiState.Success(
+                userData = UserData(
+                    themeBrand = ThemeBrand.DEFAULT,
+                    useDarkTheme = false,
+                    useDynamicColor = false
+                )
             )
-        ).map(MainActivityUiState::Success)
-            .stateIn(
-                scope = viewModelScope,
-                initialValue = MainActivityUiState.Loading,
-                started = SharingStarted.WhileSubscribed(5_000),
-            )
+        }
+    }
 }
 
 sealed interface MainActivityUiState {
@@ -41,5 +42,6 @@ data class UserData(
 )
 
 enum class ThemeBrand {
-    DEFAULT, ANDROID
+    DEFAULT,
+    ANDROID,
 }
