@@ -26,7 +26,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import ru.kolesnik.potok.core.network.AuthApi
 import ru.kolesnik.potok.core.network.BuildConfig
-import ru.kolesnik.potok.core.network.api.*
 import ru.kolesnik.potok.core.network.cookie.InMemoryCookieStore
 import ru.kolesnik.potok.core.network.cookie.JavaNetCookieJar
 import ru.kolesnik.potok.core.network.model.customSerializersModule
@@ -34,69 +33,53 @@ import ru.kolesnik.potok.core.network.ssl.AppSSLFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.time.Duration
-import javax.inject.Qualifier
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Singleton
 
 private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class AuthRetrofit
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApiRetrofit
-
 class AuthAuthenticator(
-    private val apiProvider: dagger.Lazy<AuthApi>
+    private val apiProvider: dagger.Lazy<AuthApi>,
+    private val cookieManager: CookieManager
 ) : Authenticator {
-    private var attemptCount = 0
-    private var isAuthenticating = false
-
+    private val isAuthenticating = AtomicBoolean(false)
+    
     override fun authenticate(route: Route?, response: Response): Request? {
         Log.d("AuthAuthenticator", "Authentication needed for: ${response.request.url}")
         
-        when (response.code) {
-            401, 403 -> {
-                if (attemptCount >= 3) {
-                    Log.e("AuthAuthenticator", "Too many auth attempts")
-                    return null
-                }
-                
-                if (isAuthenticating) {
-                    Log.d("AuthAuthenticator", "Already authenticating, skipping")
-                    return null
-                }
-                
-                attemptCount++
-                isAuthenticating = true
-                
-                try {
-                    Log.d("AuthAuthenticator", "Attempting authentication...")
-                    runBlocking {
-                        apiProvider.get().auth()
-                    }
-                    Log.d("AuthAuthenticator", "Authentication successful")
-                    
-                    return response.request.newBuilder()
-                        .removeHeader("Cookie")
-                        .build()
-                } catch (e: Exception) {
-                    Log.e("AuthAuthenticator", "Authentication failed", e)
-                    return null
-                } finally {
-                    isAuthenticating = false
-                }
+        // Проверяем, что это действительно 401 ошибка
+        if (response.code != 401) {
+            Log.d("AuthAuthenticator", "Not a 401 error, code: ${response.code}")
+            return null
+        }
+        
+        // Предотвращаем множественные одновременные попытки авторизации
+        if (isAuthenticating.getAndSet(true)) {
+            Log.d("AuthAuthenticator", "Authentication already in progress")
+            return null
+        }
+        
+        return try {
+            Log.d("AuthAuthenticator", "Starting authentication...")
+            
+            // Очищаем старые куки
+            cookieManager.cookieStore.removeAll()
+            Log.d("AuthAuthenticator", "Cleared old cookies")
+            
+            // Выполняем авторизационный запрос
+            runBlocking {
+                apiProvider.get().auth()
             }
-
-            502, 503 -> {
-                throw Exception("AUTH_SERVER_OFF: ${response.code}")
-            }
-
-            else -> {
-                attemptCount = 0
-                throw Exception("ERROR: ${response.code}")
-            }
+            Log.d("AuthAuthenticator", "Authentication successful")
+            
+            // Возвращаем оригинальный запрос для повтора
+            response.request.newBuilder().build()
+            
+        } catch (e: Exception) {
+            Log.e("AuthAuthenticator", "Authentication failed", e)
+            null
+        } finally {
+            isAuthenticating.set(false)
         }
     }
 }
@@ -104,6 +87,7 @@ class AuthAuthenticator(
 class AuthInterceptor(
     private val cookieManager: CookieManager
 ) : Interceptor {
+    
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         
@@ -121,23 +105,38 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideCookieManager(): CookieManager =
+        CookieManager(InMemoryCookieStore("potok"), CookiePolicy.ACCEPT_ALL)
+
+    @Provides
+    @Singleton
     fun provideAuthenticator(
-        @AuthRetrofit apiProvider: dagger.Lazy<AuthApi>
-    ): Authenticator = AuthAuthenticator(apiProvider)
+        apiProvider: dagger.Lazy<AuthApi>,
+        cookieManager: CookieManager
+    ): Authenticator = AuthAuthenticator(apiProvider, cookieManager)
 
     @Provides
     @Singleton
     fun providesNetworkJson(): Json = Json {
         serializersModule = customSerializersModule
-        ignoreUnknownKeys = true
-        isLenient = true
-        encodeDefaults = true
+        ignoreUnknownKeys = true // Игнорировать неизвестные ключи
+        isLenient = true         // Разрешить нестрогий JSON
+        encodeDefaults = true    // Сериализовать значения по умолчанию
     }
 
     @Provides
     @Singleton
-    fun provideCookieManager(): CookieManager =
-        CookieManager(InMemoryCookieStore("cumulo"), CookiePolicy.ACCEPT_ALL)
+    fun provideRetrofitSyncFullNetworkApi(
+        callFactory: Call.Factory,
+        networkJson: Json
+    ): AuthApi {
+        return Retrofit.Builder()
+            .baseUrl(RANDM_BASE_URL)
+            .callFactory(callFactory)
+            .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(AuthApi::class.java)
+    }
 
     @Provides
     @Singleton
@@ -145,96 +144,19 @@ internal object NetworkModule {
         appSSLFactory: AppSSLFactory,
         cookieManager: CookieManager,
         authenticator: Authenticator
-    ): Call.Factory = trace("CumuloOkHttpClient") {
+    ): Call.Factory = trace("NiaOkHttpClient") {
         val sslFactory = appSSLFactory.getSSLFactory()
         OkHttpClient.Builder()
             .authenticator(authenticator)
+            .cookieJar(JavaNetCookieJar(cookieManager))
+            .addInterceptor(AuthInterceptor(cookieManager))
             .retryOnConnectionFailure(true)
             .readTimeout(Duration.ofMinutes(1))
             .connectTimeout(Duration.ofMinutes(1))
             .writeTimeout(Duration.ofMinutes(1))
-            .cookieJar(JavaNetCookieJar(cookieManager))
             .sslSocketFactory(sslFactory.sslSocketFactory, sslFactory.trustManager.get())
-            .addInterceptor(AuthInterceptor(cookieManager))
             .addInterceptor(PerformanceInterceptor())
             .build()
-    }
-
-    @Provides
-    @Singleton
-    @AuthRetrofit
-    fun provideAuthRetrofit(
-        callFactory: Call.Factory,
-        networkJson: Json
-    ): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(RANDM_BASE_URL)
-            .callFactory(callFactory)
-            .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    @ApiRetrofit
-    fun provideApiRetrofit(
-        callFactory: Call.Factory,
-        networkJson: Json
-    ): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(RANDM_BASE_URL)
-            .callFactory(callFactory)
-            .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideAuthApi(
-        @AuthRetrofit retrofit: Retrofit
-    ): AuthApi = retrofit.create(AuthApi::class.java)
-
-    // API провайдеры
-    @Provides
-    @Singleton
-    fun provideChecklistApi(@ApiRetrofit retrofit: Retrofit): ChecklistApi {
-        return retrofit.create(ChecklistApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideLifeAreaApi(@ApiRetrofit retrofit: Retrofit): LifeAreaApi {
-        return retrofit.create(LifeAreaApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideLifeFlowApi(@ApiRetrofit retrofit: Retrofit): LifeFlowApi {
-        return retrofit.create(LifeFlowApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideBoardApi(@ApiRetrofit retrofit: Retrofit): BoardApi {
-        return retrofit.create(BoardApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideTaskApi(@ApiRetrofit retrofit: Retrofit): TaskApi {
-        return retrofit.create(TaskApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideSearchApi(@ApiRetrofit retrofit: Retrofit): SearchApi {
-        return retrofit.create(SearchApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideCommentApi(@ApiRetrofit retrofit: Retrofit): CommentApi {
-        return retrofit.create(CommentApi::class.java)
     }
 
     private class PerformanceInterceptor : Interceptor {
@@ -275,10 +197,10 @@ internal object NetworkModule {
             val code = response.code
             val message = response.message
             val color = when {
-                code >= 500 -> ANSI_RED
-                code >= 400 -> ANSI_YELLOW
-                code >= 300 -> ANSI_BLUE
-                else -> ANSI_GREEN
+                code >= 500 -> ANSI_RED    // Server errors
+                code >= 400 -> ANSI_YELLOW  // Client errors
+                code >= 300 -> ANSI_BLUE    // Redirects
+                else -> ANSI_GREEN          // Success
             }
 
             Log.d("Network", "<-- $color$code $message${ANSI_RESET} ${request.url} (${"%.2f".format(elapsedMs)}ms)")
@@ -297,6 +219,7 @@ internal object NetworkModule {
                         Log.d("Network", "Response Body: $contentType ($size)")
 
                         if (LOG_BODY_CONTENT && isTextContentType(body.contentType())) {
+                            // Исправление: правильный способ получить тело ответа
                             val content = getResponseBodyContent(body)
                             Log.d("Network", "Response Body Content:\n${content.prettyPrintIfJson()}")
                         }
@@ -309,11 +232,13 @@ internal object NetworkModule {
 
         private fun getResponseBodyContent(body: ResponseBody): String {
             return try {
+                // Создаем копию тела для чтения
                 val source = body.source()
                 source.request(Long.MAX_VALUE)
                 val buffer = source.buffer
                 val content = buffer.clone().readUtf8()
 
+                // Ограничиваем длину
                 if (content.length > MAX_BODY_LOG_LENGTH) {
                     content.substring(0, MAX_BODY_LOG_LENGTH) + "... [truncated]"
                 } else {
@@ -326,11 +251,13 @@ internal object NetworkModule {
 
         private fun getRequestBodyContent(request: Request): String {
             return try {
+                // Копируем тело запроса
                 val copy = request.newBuilder().build()
                 val buffer = Buffer()
                 copy.body?.writeTo(buffer)
                 val content = buffer.readUtf8()
 
+                // Ограничиваем длину
                 if (content.length > MAX_BODY_LOG_LENGTH) {
                     content.substring(0, MAX_BODY_LOG_LENGTH) + "... [truncated]"
                 } else {
@@ -395,6 +322,17 @@ internal object NetworkModule {
                     subtype.contains("form")
         }
 
+        private fun peekRequestBody(request: Request): String? {
+            return try {
+                val copy = request.newBuilder().build()
+                val buffer = Buffer()
+                copy.body?.writeTo(buffer)
+                buffer.readUtf8()
+            } catch (e: Exception) {
+                null
+            }
+        }
+
         private fun String.prettyPrintIfJson(): String {
             return if (contains(Regex("^\\s*[{\\[]"))) {
                 try {
@@ -413,10 +351,12 @@ internal object NetworkModule {
             }
         }
 
+        // ANSI цвета для терминала
         private val ANSI_RESET = "\u001B[0m"
         private val ANSI_RED = "\u001B[31m"
         private val ANSI_GREEN = "\u001B[32m"
         private val ANSI_YELLOW = "\u001B[33m"
         private val ANSI_BLUE = "\u001B[34m"
     }
+
 }
