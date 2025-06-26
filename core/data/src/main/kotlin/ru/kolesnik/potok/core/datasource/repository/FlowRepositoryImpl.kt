@@ -3,6 +3,7 @@ package ru.kolesnik.potok.core.datasource.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.LifeFlowDao
+import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
 import ru.kolesnik.potok.core.model.LifeFlow
 import ru.kolesnik.potok.core.network.api.LifeFlowApi
 import ru.kolesnik.potok.core.network.model.api.LifeFlowRq
@@ -11,60 +12,71 @@ import java.util.UUID
 import javax.inject.Inject
 
 class FlowRepositoryImpl @Inject constructor(
-    private val api: LifeFlowApi,
-    private val lifeFlowDao: LifeFlowDao,
-    private val syncRepository: SyncRepository
+    private val lifeFlowApi: LifeFlowApi,
+    private val lifeFlowDao: LifeFlowDao
 ) : FlowRepository {
-    
+
     override fun getFlowByLifeArea(lifeAreaId: String): Flow<List<LifeFlow>> {
-        return lifeFlowDao.getByAreaIdFlow(UUID.fromString(lifeAreaId)).map { entities ->
-            entities.map { entity ->
-                LifeFlow(
-                    id = entity.id.toString(),
-                    areaId = entity.areaId.toString(),
-                    title = entity.title,
-                    style = entity.style,
-                    placement = entity.placement,
-                    status = entity.status ?: ru.kolesnik.potok.core.model.FlowStatus.NEW
-                )
-            }
+        val areaUuid = UUID.fromString(lifeAreaId)
+        return lifeFlowDao.getByAreaIdFlow(areaUuid).map { entities ->
+            entities.map { it.toDomain() }
         }
     }
-    
-    override suspend fun createFlow(lifeAreaId: String, title: String, style: String?): String {
+
+    override suspend fun createFlow(lifeAreaId: UUID, title: String, style: String?): UUID {
         val request = LifeFlowRq(
             title = title,
-            style = style,
-            placement = null
+            style = style ?: "style1"
         )
         
-        val response = api.createLifeFlow(UUID.fromString(lifeAreaId), request)
-        syncRepository.syncLifeFlows(UUID.fromString(lifeAreaId))
+        val response = lifeFlowApi.createLifeFlow(lifeAreaId, request)
+        val entity = LifeFlowEntity(
+            id = response.id,
+            areaId = response.areaId,
+            title = response.title,
+            style = response.style,
+            placement = response.placement,
+            status = response.status
+        )
         
-        return response.id.toString()
+        lifeFlowDao.insert(entity)
+        return response.id
     }
-    
-    override suspend fun updateFlow(flowId: String, title: String, style: String?) {
+
+    override suspend fun updateFlow(flowId: UUID, title: String, style: String?): LifeFlow {
         val request = LifeFlowRq(
             title = title,
-            style = style,
-            placement = null
+            style = style
         )
         
-        api.updateLifeFlow(UUID.fromString(flowId), request)
+        val response = lifeFlowApi.updateLifeFlow(flowId, request)
+        val entity = LifeFlowEntity(
+            id = response.id,
+            areaId = response.areaId,
+            title = response.title,
+            style = response.style,
+            placement = response.placement,
+            status = response.status
+        )
         
-        // Находим сферу жизни для этого потока
-        val flow = lifeFlowDao.getById(UUID.fromString(flowId))
-        if (flow != null) {
-            syncRepository.syncLifeFlows(flow.areaId)
+        lifeFlowDao.update(entity)
+        return entity.toDomain()
+    }
+
+    override suspend fun deleteFlow(flowId: UUID) {
+        lifeFlowApi.deleteLifeFlow(flowId)
+        val entity = lifeFlowDao.getById(flowId)
+        if (entity != null) {
+            lifeFlowDao.delete(entity)
         }
     }
     
-    override suspend fun deleteFlow(flowId: String) {
-        val flow = lifeFlowDao.getById(UUID.fromString(flowId))
-        if (flow != null) {
-            api.deleteLifeFlow(UUID.fromString(flowId))
-            lifeFlowDao.delete(flow)
-        }
-    }
+    private fun LifeFlowEntity.toDomain(): LifeFlow = LifeFlow(
+        id = id.toString(),
+        areaId = areaId.toString(),
+        title = title,
+        style = style,
+        placement = placement,
+        status = status ?: ru.kolesnik.potok.core.model.FlowStatus.NEW
+    )
 }

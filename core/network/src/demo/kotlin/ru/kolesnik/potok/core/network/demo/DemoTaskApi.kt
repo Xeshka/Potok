@@ -3,6 +3,8 @@ package ru.kolesnik.potok.core.network.demo
 import ru.kolesnik.potok.core.network.api.TaskApi
 import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.model.potok.PatchPayload
+import java.time.OffsetDateTime
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,119 +14,80 @@ class DemoTaskApi @Inject constructor(
 ) : TaskApi {
     
     override suspend fun createTask(request: TaskRq): TaskRs {
-        // Заглушка для демо-режима
-        val task = dataSource.createTask(
-            ru.kolesnik.potok.core.network.model.potok.NetworkCreateTask(
-                lifeAreaId = request.lifeAreaId,
-                flowId = request.flowId,
-                payload = request.payload
-            )
-        )
-        
+        // Создаем заглушку для ответа
+        val taskId = UUID.randomUUID().toString().substring(0, 8)
         return TaskRs(
-            id = task.id,
-            title = task.title,
-            subtitle = task.subtitle,
-            mainOrder = task.mainOrder,
-            source = task.source,
-            taskOwner = task.taskOwner,
-            creationDate = task.creationDate,
-            payload = task.payload,
-            internalId = task.internalId,
-            lifeAreaPlacement = task.lifeAreaPlacement,
-            flowPlacement = task.flowPlacement,
-            assignees = task.assignees?.map { 
-                TaskAssigneeRs(
-                    employeeId = it.employeeId,
-                    complete = it.complete
-                )
-            },
-            commentCount = task.commentCount,
-            attachmentCount = task.attachmentCount,
-            checkList = task.checkList?.map {
-                ChecklistTaskDTO(
-                    id = it.id,
-                    title = it.title,
-                    done = it.done,
-                    placement = it.placement,
-                    responsibles = it.responsibles,
-                    deadline = it.deadline
-                )
-            },
-            cardId = task.cardId
+            id = taskId,
+            title = request.payload.title ?: "Новая задача",
+            subtitle = request.payload.subtitle,
+            mainOrder = 0,
+            source = request.payload.source ?: "TRELLO",
+            taskOwner = "449927", // ID текущего пользователя
+            creationDate = OffsetDateTime.now(),
+            payload = request.payload,
+            internalId = System.currentTimeMillis().toInt().toLong(),
+            lifeAreaPlacement = 0,
+            flowPlacement = 0,
+            assignees = request.payload.assignees?.map { 
+                TaskAssigneeRs(employeeId = it, complete = false) 
+            } ?: emptyList(),
+            commentCount = 0,
+            attachmentCount = 0,
+            cardId = UUID.randomUUID()
         )
     }
     
     override suspend fun updateTask(taskId: String, request: PatchPayload) {
-        // Заглушка для демо-режима
-        dataSource.patchTask(taskId, request)
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun getTaskId(taskId: String): Long {
-        // Заглушка для демо-режима
-        return 1L
+        // Возвращаем случайный ID
+        return System.currentTimeMillis()
     }
     
     override suspend fun checkTaskAllowed(taskId: Long) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun getTaskDetails(taskId: String): TaskRs {
-        // Заглушка для демо-режима
-        val task = dataSource.getFull()
-            .flatMap { it.flows ?: emptyList() }
-            .flatMap { it.tasks ?: emptyList() }
-            .find { it.id == taskId }
-            ?: throw IllegalStateException("Task not found")
+        // Ищем задачу в демо-данных
+        val allAreas = dataSource.getFullLifeAreas()
+        for (area in allAreas) {
+            for (flow in area.flows ?: emptyList()) {
+                for (task in flow.tasks ?: emptyList()) {
+                    if (task.id == taskId || task.cardId.toString() == taskId) {
+                        return task
+                    }
+                }
+            }
+        }
         
+        // Если задача не найдена, возвращаем заглушку
         return TaskRs(
-            id = task.id,
-            title = task.title,
-            subtitle = task.subtitle,
-            mainOrder = task.mainOrder,
-            source = task.source,
-            taskOwner = task.taskOwner,
-            creationDate = task.creationDate,
-            payload = task.payload,
-            internalId = task.internalId,
-            lifeAreaPlacement = task.lifeAreaPlacement,
-            flowPlacement = task.flowPlacement,
-            assignees = task.assignees?.map { 
-                TaskAssigneeRs(
-                    employeeId = it.employeeId,
-                    complete = it.complete
-                )
-            },
-            commentCount = task.commentCount,
-            attachmentCount = task.attachmentCount,
-            checkList = task.checkList?.map {
-                ChecklistTaskDTO(
-                    id = it.id,
-                    title = it.title,
-                    done = it.done,
-                    placement = it.placement,
-                    responsibles = it.responsibles,
-                    deadline = it.deadline
-                )
-            },
-            cardId = task.cardId
+            id = taskId,
+            title = "Задача не найдена",
+            taskOwner = "449927",
+            creationDate = OffsetDateTime.now(),
+            payload = TaskPayload(title = "Задача не найдена"),
+            cardId = UUID.randomUUID()
         )
     }
     
     override suspend fun moveTaskToFlow(taskId: String, request: FlowPositionRq) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun moveTaskToLifeArea(taskId: String, request: LifeAreaPositionRq) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun returnTask(taskId: String, assignee: String) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun getTaskArchive(limit: Int?, offset: Int?, sort: String?, status: String?): TaskArchivePageDTO {
-        // Заглушка для демо-режима
+        // Возвращаем пустой список архивных задач
         return TaskArchivePageDTO(
             limit = limit ?: 10,
             offset = offset ?: 0,
@@ -134,19 +97,26 @@ class DemoTaskApi @Inject constructor(
     }
     
     override suspend fun deleteTasksFromArchive(taskIds: String) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun restoreTasksFromArchive(request: TaskExternalIds) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun archiveTask(taskId: String) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun getArchivedTaskDetails(taskId: String): TaskRs {
-        // Заглушка для демо-режима
-        return getTaskDetails(taskId)
+        // Возвращаем заглушку
+        return TaskRs(
+            id = taskId,
+            title = "Архивная задача",
+            taskOwner = "449927",
+            creationDate = OffsetDateTime.now(),
+            payload = TaskPayload(title = "Архивная задача"),
+            cardId = UUID.randomUUID()
+        )
     }
 }

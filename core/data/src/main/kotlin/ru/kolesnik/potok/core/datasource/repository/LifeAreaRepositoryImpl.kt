@@ -3,9 +3,9 @@ package ru.kolesnik.potok.core.datasource.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.LifeAreaDao
-import ru.kolesnik.potok.core.database.dao.LifeFlowDao
-import ru.kolesnik.potok.core.database.dao.TaskDao
+import ru.kolesnik.potok.core.database.entitys.LifeAreaEntity
 import ru.kolesnik.potok.core.model.LifeArea
+import ru.kolesnik.potok.core.model.LifeAreaSharedInfo
 import ru.kolesnik.potok.core.network.api.LifeAreaApi
 import ru.kolesnik.potok.core.network.model.api.LifeAreaRq
 import ru.kolesnik.potok.core.network.repository.LifeAreaRepository
@@ -13,31 +13,17 @@ import java.util.UUID
 import javax.inject.Inject
 
 class LifeAreaRepositoryImpl @Inject constructor(
-    private val api: LifeAreaApi,
-    private val lifeAreaDao: LifeAreaDao,
-    private val lifeFlowDao: LifeFlowDao,
-    private val taskDao: TaskDao,
-    private val syncRepository: SyncRepository
+    private val lifeAreaApi: LifeAreaApi,
+    private val lifeAreaDao: LifeAreaDao
 ) : LifeAreaRepository {
 
     override fun getLifeAreas(): Flow<List<LifeArea>> {
         return lifeAreaDao.getAllFlow().map { entities ->
-            entities.map { entity ->
-                LifeArea(
-                    id = entity.id,
-                    title = entity.title,
-                    style = entity.style,
-                    tagsId = entity.tagsId,
-                    placement = entity.placement,
-                    isDefault = entity.isDefault,
-                    isTheme = entity.isTheme,
-                    shared = entity.sharedInfo
-                )
-            }
+            entities.map { it.toDomain() }
         }
     }
 
-    override suspend fun createLifeArea(title: String, style: String?, isTheme: Boolean, onlyPersonal: Boolean): String {
+    override suspend fun createLifeArea(title: String, style: String?, isTheme: Boolean, onlyPersonal: Boolean): UUID {
         val request = LifeAreaRq(
             title = title,
             style = style,
@@ -47,13 +33,24 @@ class LifeAreaRepositoryImpl @Inject constructor(
             onlyPersonal = onlyPersonal
         )
         
-        val response = api.createLifeArea(request)
-        syncRepository.syncLifeAreas()
+        val response = lifeAreaApi.createLifeArea(request)
+        val entity = LifeAreaEntity(
+            id = response.id,
+            title = response.title,
+            style = response.style,
+            tagsId = response.tagsId,
+            placement = response.placement,
+            isDefault = response.isDefault,
+            sharedInfo = response.sharedInfo,
+            isTheme = response.isTheme,
+            onlyPersonal = response.onlyPersonal
+        )
         
-        return response.id.toString()
+        lifeAreaDao.insert(entity)
+        return response.id
     }
 
-    override suspend fun updateLifeArea(id: String, title: String, style: String?, isTheme: Boolean, onlyPersonal: Boolean) {
+    override suspend fun updateLifeArea(id: UUID, title: String, style: String?, isTheme: Boolean, onlyPersonal: Boolean): LifeArea {
         val request = LifeAreaRq(
             title = title,
             style = style,
@@ -63,18 +60,45 @@ class LifeAreaRepositoryImpl @Inject constructor(
             onlyPersonal = onlyPersonal
         )
         
-        api.updateLifeArea(UUID.fromString(id), request)
-        syncRepository.syncLifeAreas()
+        val response = lifeAreaApi.updateLifeArea(id, request)
+        val entity = LifeAreaEntity(
+            id = response.id,
+            title = response.title,
+            style = response.style,
+            tagsId = response.tagsId,
+            placement = response.placement,
+            isDefault = response.isDefault,
+            sharedInfo = response.sharedInfo,
+            isTheme = response.isTheme,
+            onlyPersonal = response.onlyPersonal
+        )
+        
+        lifeAreaDao.update(entity)
+        return entity.toDomain()
     }
 
-    override suspend fun deleteLifeArea(id: String) {
-        api.deleteLifeArea(UUID.fromString(id))
-        
-        // Удаляем из локальной базы данных
-        val entity = lifeAreaDao.getById(UUID.fromString(id))
+    override suspend fun deleteLifeArea(id: UUID) {
+        lifeAreaApi.deleteLifeArea(id)
+        val entity = lifeAreaDao.getById(id)
         if (entity != null) {
-            // Каскадное удаление потоков и задач происходит автоматически благодаря настройкам Room
             lifeAreaDao.delete(entity)
         }
     }
+    
+    private fun LifeAreaEntity.toDomain(): LifeArea = LifeArea(
+        id = id,
+        title = title,
+        style = style,
+        tagsId = tagsId,
+        placement = placement,
+        isDefault = isDefault,
+        isTheme = isTheme,
+        shared = sharedInfo?.let {
+            LifeAreaSharedInfo(
+                areaId = id,
+                owner = it.owner,
+                recipients = it.recipients
+            )
+        }
+    )
 }

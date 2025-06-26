@@ -20,27 +20,27 @@ internal interface FlavoredNetworkModule {
     @Binds
     @Singleton
     fun bindLifeAreaApi(impl: DemoLifeAreaApi): LifeAreaApi
-
+    
     @Binds
     @Singleton
     fun bindLifeFlowApi(impl: DemoLifeFlowApi): LifeFlowApi
-
+    
     @Binds
     @Singleton
     fun bindTaskApi(impl: DemoTaskApi): TaskApi
-
+    
     @Binds
     @Singleton
     fun bindChecklistApi(impl: DemoChecklistApi): ChecklistApi
-
+    
     @Binds
     @Singleton
     fun bindSearchApi(impl: DemoSearchApi): SearchApi
-
+    
     @Binds
     @Singleton
     fun bindCommentApi(impl: DemoCommentApi): CommentApi
-
+    
     @Binds
     @Singleton
     fun bindBoardApi(impl: DemoBoardApi): BoardApi

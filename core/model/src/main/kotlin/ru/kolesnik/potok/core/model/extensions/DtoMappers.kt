@@ -3,15 +3,13 @@ package ru.kolesnik.potok.core.model.extensions
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.LifeAreaDTO
 import ru.kolesnik.potok.core.network.model.api.LifeFlowDTO
-import ru.kolesnik.potok.core.network.model.api.TaskAssigneeRs
 import ru.kolesnik.potok.core.network.model.api.TaskRs
 import ru.kolesnik.potok.core.network.model.potok.NetworkLifeArea
 import ru.kolesnik.potok.core.network.model.potok.NetworkLifeFlow
 import ru.kolesnik.potok.core.network.model.potok.NetworkTask
-import ru.kolesnik.potok.core.network.model.potok.NetworkTaskAssignee
 import java.util.UUID
 
-// LifeArea mappers
+// DTO to Domain model mappers
 fun LifeAreaDTO.toDomain(): LifeArea = LifeArea(
     id = id,
     title = title,
@@ -20,21 +18,15 @@ fun LifeAreaDTO.toDomain(): LifeArea = LifeArea(
     placement = placement,
     isDefault = isDefault,
     isTheme = isTheme,
-    shared = sharedInfo
+    shared = sharedInfo?.let {
+        LifeAreaSharedInfo(
+            areaId = id,
+            owner = it.owner,
+            recipients = it.recipients
+        )
+    }
 )
 
-fun NetworkLifeArea.toDomain(): LifeArea = LifeArea(
-    id = id,
-    title = title,
-    style = style,
-    tagsId = tagsId,
-    placement = placement,
-    isDefault = isDefault,
-    isTheme = isTheme,
-    shared = sharedInfo
-)
-
-// LifeFlow mappers
 fun LifeFlowDTO.toDomain(): LifeFlow = LifeFlow(
     id = id.toString(),
     areaId = areaId.toString(),
@@ -44,57 +36,114 @@ fun LifeFlowDTO.toDomain(): LifeFlow = LifeFlow(
     status = status ?: FlowStatus.NEW
 )
 
+fun TaskRs.toDomain(): TaskMain = TaskMain(
+    id = id,
+    title = title,
+    source = source,
+    taskOwner = taskOwner,
+    creationDate = creationDate,
+    deadline = payload.deadline,
+    internalId = internalId,
+    lifeAreaPlacement = lifeAreaPlacement,
+    flowPlacement = flowPlacement,
+    assignees = assignees?.map { 
+        TaskAssignee(
+            employeeId = it.employeeId,
+            complete = it.complete
+        )
+    },
+    commentCount = commentCount,
+    attachmentCount = attachmentCount,
+    lifeAreaId = payload.lifeAreaId,
+    flowId = flowId?.let { UUID.fromString(it.toString()) }
+)
+
+fun TaskRs.toFullDomain(): Task = Task(
+    id = id,
+    title = title,
+    subtitle = subtitle,
+    mainOrder = mainOrder,
+    source = source,
+    taskOwner = taskOwner,
+    creationDate = creationDate,
+    payload = payload.toDomain(),
+    internalId = internalId,
+    lifeAreaPlacement = lifeAreaPlacement,
+    flowPlacement = flowPlacement,
+    assignees = assignees?.map { 
+        TaskAssignee(
+            employeeId = it.employeeId,
+            complete = it.complete
+        )
+    },
+    commentCount = commentCount,
+    attachmentCount = attachmentCount,
+    checkList = checkList?.map {
+        ChecklistTask(
+            id = it.id,
+            title = it.title,
+            done = it.done ?: false,
+            placement = it.placement ?: 0,
+            responsibles = it.responsibles,
+            deadline = it.deadline
+        )
+    },
+    lifeAreaId = payload.lifeAreaId,
+    flowId = flowId?.let { UUID.fromString(it.toString()) }
+)
+
+fun ru.kolesnik.potok.core.network.model.api.TaskPayload.toDomain(): TaskPayload = TaskPayload(
+    title = title,
+    source = source,
+    onMainPage = onMainPage,
+    deadline = deadline,
+    lifeArea = lifeArea,
+    lifeAreaId = lifeAreaId,
+    subtitle = subtitle,
+    userEdit = userEdit,
+    assignees = assignees,
+    important = important,
+    messageId = messageId,
+    fullMessage = fullMessage,
+    description = description,
+    priority = priority,
+    userChangeAssignee = userChangeAssignee,
+    organization = organization,
+    shortMessage = shortMessage,
+    externalId = externalId,
+    relatedAssignment = relatedAssignment,
+    meanSource = meanSource,
+    id = id
+)
+
+// Network models to Domain models
+fun NetworkLifeArea.toDomain(): LifeArea = LifeArea(
+    id = id,
+    title = title,
+    style = style,
+    tagsId = tagsId,
+    placement = placement,
+    isDefault = isDefault,
+    isTheme = isTheme,
+    shared = sharedInfo?.let {
+        LifeAreaSharedInfo(
+            areaId = id,
+            owner = it.owner,
+            recipients = it.recipients
+        )
+    }
+)
+
 fun NetworkLifeFlow.toDomain(): LifeFlow = LifeFlow(
     id = id.toString(),
     areaId = areaId.toString(),
     title = title,
     style = style,
     placement = placement,
-    status = status ?: FlowStatus.NEW
+    status = status?.let { FlowStatus.valueOf(it) } ?: FlowStatus.NEW
 )
 
-// Task mappers
-fun TaskRs.toDomain(): Task = Task(
-    id = id,
-    title = title,
-    subtitle = subtitle,
-    mainOrder = mainOrder,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    payload = payload,
-    internalId = internalId,
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    assignees = assignees?.map { it.toDomain() },
-    commentCount = commentCount,
-    attachmentCount = attachmentCount,
-    checkList = checkList?.map { it.toDomain() },
-    lifeAreaId = null,
-    flowId = null
-)
-
-fun NetworkTask.toDomain(): Task = Task(
-    id = id,
-    title = title,
-    subtitle = subtitle,
-    mainOrder = mainOrder,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    payload = payload,
-    internalId = internalId,
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    assignees = assignees?.map { it.toDomain() },
-    commentCount = commentCount,
-    attachmentCount = attachmentCount,
-    checkList = checkList?.map { it.toDomain() },
-    lifeAreaId = null,
-    flowId = null
-)
-
-fun TaskRs.toTaskMain(): TaskMain = TaskMain(
+fun NetworkTask.toDomain(): TaskMain = TaskMain(
     id = id,
     title = title,
     source = source,
@@ -104,56 +153,72 @@ fun TaskRs.toTaskMain(): TaskMain = TaskMain(
     internalId = internalId,
     lifeAreaPlacement = lifeAreaPlacement,
     flowPlacement = flowPlacement,
-    assignees = assignees?.map { it.toDomain() },
+    assignees = assignees?.map { 
+        TaskAssignee(
+            employeeId = it.employeeId,
+            complete = it.complete
+        )
+    },
     commentCount = commentCount,
     attachmentCount = attachmentCount,
     lifeAreaId = payload.lifeAreaId,
-    flowId = null
+    flowId = cardId
 )
 
-fun NetworkTask.toTaskMain(): TaskMain = TaskMain(
+fun NetworkTask.toFullDomain(): Task = Task(
     id = id,
     title = title,
+    subtitle = subtitle,
+    mainOrder = mainOrder,
     source = source,
     taskOwner = taskOwner,
     creationDate = creationDate,
-    deadline = payload.deadline,
+    payload = payload.toDomain(),
     internalId = internalId,
     lifeAreaPlacement = lifeAreaPlacement,
     flowPlacement = flowPlacement,
-    assignees = assignees?.map { it.toDomain() },
+    assignees = assignees?.map { 
+        TaskAssignee(
+            employeeId = it.employeeId,
+            complete = it.complete
+        )
+    },
     commentCount = commentCount,
     attachmentCount = attachmentCount,
+    checkList = checkList?.map {
+        ChecklistTask(
+            id = it.id,
+            title = it.title,
+            done = it.done ?: false,
+            placement = it.placement ?: 0,
+            responsibles = it.responsibles,
+            deadline = it.deadline
+        )
+    },
     lifeAreaId = payload.lifeAreaId,
-    flowId = null
+    flowId = cardId
 )
 
-// Assignee mappers
-fun TaskAssigneeRs.toDomain(): TaskAssignee = TaskAssignee(
-    employeeId = employeeId,
-    complete = complete
-)
-
-fun NetworkTaskAssignee.toDomain(): TaskAssignee = TaskAssignee(
-    employeeId = employeeId,
-    complete = complete
-)
-
-// Checklist mappers
-fun ru.kolesnik.potok.core.network.model.api.ChecklistTaskDTO.toDomain(): ChecklistTask = ChecklistTask(
-    id = id,
+fun ru.kolesnik.potok.core.network.model.potok.NetworkTaskPayload.toDomain(): TaskPayload = TaskPayload(
     title = title,
-    done = done ?: false,
-    placement = placement ?: 0,
-    responsibles = responsibles,
-    deadline = deadline
-)
-
-fun ru.kolesnik.potok.core.network.model.potok.NetworkChecklistTask.toDomain(): ChecklistTask = ChecklistTask(
-    id = id,
-    title = title,
-    done = done ?: false,
-    placement = placement ?: 0,
-    responsibles = responsibles,
-    deadline = deadline
+    source = source,
+    onMainPage = onMainPage,
+    deadline = deadline,
+    lifeArea = lifeArea,
+    lifeAreaId = lifeAreaId,
+    subtitle = subtitle,
+    userEdit = userEdit,
+    assignees = assignees,
+    important = important,
+    messageId = messageId,
+    fullMessage = fullMessage,
+    description = description,
+    priority = priority,
+    userChangeAssignee = userChangeAssignee,
+    organization = organization,
+    shortMessage = shortMessage,
+    externalId = externalId,
+    relatedAssignment = relatedAssignment,
+    meanSource = meanSource,
+    id = id
 )

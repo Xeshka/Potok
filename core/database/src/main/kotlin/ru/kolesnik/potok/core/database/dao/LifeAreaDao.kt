@@ -28,7 +28,7 @@ interface LifeAreaDao {
 
     @Query("SELECT * FROM life_areas ORDER BY placement ASC")
     suspend fun getAll(): List<LifeAreaEntity>
-
+    
     @Query("SELECT * FROM life_areas ORDER BY placement ASC")
     fun getAllFlow(): Flow<List<LifeAreaEntity>>
 

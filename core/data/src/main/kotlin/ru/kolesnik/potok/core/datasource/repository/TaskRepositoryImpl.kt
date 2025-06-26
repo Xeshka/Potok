@@ -4,10 +4,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.ChecklistTaskDao
 import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
-import ru.kolesnik.potok.core.database.dao.TaskCommentDao
 import ru.kolesnik.potok.core.database.dao.TaskDao
+import ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity
+import ru.kolesnik.potok.core.database.entitys.TaskEntity
 import ru.kolesnik.potok.core.model.Task
+import ru.kolesnik.potok.core.model.TaskAssignee
 import ru.kolesnik.potok.core.model.TaskMain
+import ru.kolesnik.potok.core.model.TaskPayload
 import ru.kolesnik.potok.core.network.api.TaskApi
 import ru.kolesnik.potok.core.network.model.api.FlowPositionRq
 import ru.kolesnik.potok.core.network.model.api.TaskRq
@@ -18,231 +21,248 @@ import java.util.UUID
 import javax.inject.Inject
 
 class TaskRepositoryImpl @Inject constructor(
-    private val api: TaskApi,
+    private val taskApi: TaskApi,
     private val taskDao: TaskDao,
     private val taskAssigneeDao: TaskAssigneeDao,
-    private val checklistTaskDao: ChecklistTaskDao,
-    private val taskCommentDao: TaskCommentDao,
-    private val syncRepository: SyncRepository
+    private val checklistTaskDao: ChecklistTaskDao
 ) : TaskRepository {
 
     override fun getTaskMainByArea(lifeAreaId: String): Flow<List<TaskMain>> {
-        return taskDao.getByAreaIdFlow(UUID.fromString(lifeAreaId)).map { entities ->
-            entities.map { entity ->
-                TaskMain(
-                    id = entity.externalId ?: entity.cardId.toString(),
-                    title = entity.title,
-                    source = entity.source,
-                    taskOwner = entity.taskOwner,
-                    creationDate = entity.creationDate,
-                    deadline = entity.payload.deadline,
-                    internalId = entity.internalId,
-                    lifeAreaPlacement = entity.lifeAreaPlacement,
-                    flowPlacement = entity.flowPlacement,
-                    assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { 
-                        ru.kolesnik.potok.core.model.TaskAssignee(
-                            employeeId = it.employeeId,
-                            complete = it.complete
-                        )
-                    },
-                    commentCount = entity.commentCount,
-                    attachmentCount = entity.attachmentCount,
-                    lifeAreaId = entity.lifeAreaId,
-                    flowId = entity.flowId
-                )
-            }
-        }
-    }
-
-    override fun getTaskMainByFlow(flowId: String): Flow<List<TaskMain>> {
-        return taskDao.getByFlowIdFlow(UUID.fromString(flowId)).map { entities ->
-            entities.map { entity ->
-                TaskMain(
-                    id = entity.externalId ?: entity.cardId.toString(),
-                    title = entity.title,
-                    source = entity.source,
-                    taskOwner = entity.taskOwner,
-                    creationDate = entity.creationDate,
-                    deadline = entity.payload.deadline,
-                    internalId = entity.internalId,
-                    lifeAreaPlacement = entity.lifeAreaPlacement,
-                    flowPlacement = entity.flowPlacement,
-                    assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { 
-                        ru.kolesnik.potok.core.model.TaskAssignee(
-                            employeeId = it.employeeId,
-                            complete = it.complete
-                        )
-                    },
-                    commentCount = entity.commentCount,
-                    attachmentCount = entity.attachmentCount,
-                    lifeAreaId = entity.lifeAreaId,
-                    flowId = entity.flowId
-                )
-            }
+        val areaUuid = UUID.fromString(lifeAreaId)
+        return taskDao.getByAreaIdFlow(areaUuid).map { entities ->
+            entities.map { it.toDomainMain() }
         }
     }
 
     override suspend fun getTaskById(taskId: String): Task? {
-        val entity = taskDao.getByExternalId(taskId) ?: return null
+        val taskUuid = try {
+            UUID.fromString(taskId)
+        } catch (e: Exception) {
+            // Если taskId не является UUID, пробуем найти по externalId
+            val task = taskDao.getByExternalId(taskId)
+            return task?.toDomain()
+        }
         
-        return Task(
-            id = entity.externalId,
-            title = entity.title,
-            subtitle = entity.subtitle,
-            mainOrder = entity.mainOrder,
-            source = entity.source,
-            taskOwner = entity.taskOwner,
-            creationDate = entity.creationDate,
-            payload = entity.payload,
-            internalId = entity.internalId,
-            lifeAreaPlacement = entity.lifeAreaPlacement,
-            flowPlacement = entity.flowPlacement,
-            assignees = taskAssigneeDao.getByTaskId(entity.cardId).map { 
-                ru.kolesnik.potok.core.model.TaskAssignee(
-                    employeeId = it.employeeId,
-                    complete = it.complete
-                )
-            },
-            commentCount = entity.commentCount,
-            attachmentCount = entity.attachmentCount,
-            checkList = checklistTaskDao.getByTaskId(entity.cardId).map {
-                ru.kolesnik.potok.core.model.ChecklistTask(
-                    id = it.id,
-                    title = it.title,
-                    done = it.done ?: false,
-                    placement = it.placement ?: 0,
-                    responsibles = it.responsibles,
-                    deadline = it.deadline
-                )
-            },
-            lifeAreaId = entity.lifeAreaId,
-            flowId = entity.flowId
-        )
+        val task = taskDao.getById(taskUuid) ?: return null
+        return task.toDomain()
     }
 
-    override suspend fun createTask(task: Task): String {
+    override suspend fun createTask(task: Task): UUID {
         val request = TaskRq(
             lifeAreaId = task.lifeAreaId,
             flowId = task.flowId,
-            payload = task.payload ?: ru.kolesnik.potok.core.network.model.api.TaskPayload(
+            payload = ru.kolesnik.potok.core.network.model.api.TaskPayload(
                 title = task.title,
-                assignees = emptyList()
+                source = task.source,
+                onMainPage = task.payload?.onMainPage,
+                deadline = task.payload?.deadline,
+                lifeArea = task.payload?.lifeArea,
+                lifeAreaId = task.lifeAreaId,
+                subtitle = task.subtitle,
+                userEdit = task.payload?.userEdit,
+                assignees = task.payload?.assignees,
+                important = task.payload?.important,
+                description = task.payload?.description
             )
         )
         
-        val response = api.createTask(request)
-        
-        // Синхронизируем задачи для потока, в который добавили задачу
-        if (task.flowId != null) {
-            syncRepository.syncTasks(task.flowId!!)
-        }
-        
-        return response.id
-    }
-
-    override suspend fun updateTask(task: Task) {
-        val patchPayload = PatchPayload(
-            title = task.title,
-            description = task.payload?.description,
-            deadline = task.payload?.deadline,
-            important = task.payload?.important,
-            assignees = task.payload?.assignees
+        val response = taskApi.createTask(request)
+        val entity = TaskEntity(
+            cardId = response.cardId,
+            externalId = response.id,
+            internalId = response.internalId,
+            title = response.title,
+            subtitle = response.subtitle,
+            mainOrder = response.mainOrder,
+            source = response.source,
+            taskOwner = response.taskOwner,
+            creationDate = response.creationDate,
+            payload = task.payload ?: TaskPayload(),
+            lifeAreaId = task.lifeAreaId,
+            flowId = task.flowId,
+            lifeAreaPlacement = response.lifeAreaPlacement,
+            flowPlacement = response.flowPlacement,
+            commentCount = response.commentCount,
+            attachmentCount = response.attachmentCount
         )
         
-        api.updateTask(task.id!!, patchPayload)
+        taskDao.insert(entity)
         
-        // Обновляем задачу в локальной базе данных
-        val entity = taskDao.getByExternalId(task.id!!)
-        if (entity != null) {
-            val updatedEntity = entity.copy(
-                title = task.title,
-                payload = entity.payload.copy(
-                    title = task.title,
-                    description = task.payload?.description,
-                    deadline = task.payload?.deadline,
-                    important = task.payload?.important,
-                    assignees = task.payload?.assignees
+        // Сохраняем исполнителей
+        response.assignees?.forEach { assignee ->
+            taskAssigneeDao.insert(
+                TaskAssigneeEntity(
+                    taskCardId = response.cardId,
+                    employeeId = assignee.employeeId,
+                    complete = assignee.complete
                 )
             )
-            taskDao.update(updatedEntity)
         }
+        
+        return response.cardId
     }
 
     override suspend fun updateAndGetTask(task: Task): Task {
-        updateTask(task)
+        val taskId = task.id ?: throw IllegalArgumentException("Task ID cannot be null")
+        
+        val patchPayload = PatchPayload(
+            title = task.title,
+            source = task.source,
+            deadline = task.payload?.deadline,
+            assignees = task.payload?.assignees,
+            important = task.payload?.important,
+            description = task.payload?.description,
+            priority = task.payload?.priority
+        )
+        
+        taskApi.updateTask(taskId, patchPayload)
         
         // Получаем обновленную задачу с сервера
-        val response = api.getTaskDetails(task.id!!)
+        val updatedTask = taskApi.getTaskDetails(taskId)
         
-        // Обновляем задачу в локальной базе данных
-        val entity = taskDao.getByExternalId(task.id!!)
-        if (entity != null) {
-            val updatedEntity = entity.copy(
-                title = response.title,
-                subtitle = response.subtitle,
-                payload = response.payload,
-                commentCount = response.commentCount,
-                attachmentCount = response.attachmentCount
+        // Обновляем в базе данных
+        val entity = TaskEntity(
+            cardId = updatedTask.cardId,
+            externalId = updatedTask.id,
+            internalId = updatedTask.internalId,
+            title = updatedTask.title,
+            subtitle = updatedTask.subtitle,
+            mainOrder = updatedTask.mainOrder,
+            source = updatedTask.source,
+            taskOwner = updatedTask.taskOwner,
+            creationDate = updatedTask.creationDate,
+            payload = task.payload ?: TaskPayload(),
+            lifeAreaId = task.lifeAreaId,
+            flowId = task.flowId,
+            lifeAreaPlacement = updatedTask.lifeAreaPlacement,
+            flowPlacement = updatedTask.flowPlacement,
+            commentCount = updatedTask.commentCount,
+            attachmentCount = updatedTask.attachmentCount
+        )
+        
+        taskDao.update(entity)
+        
+        // Обновляем исполнителей
+        taskAssigneeDao.deleteByTaskId(updatedTask.cardId)
+        updatedTask.assignees?.forEach { assignee ->
+            taskAssigneeDao.insert(
+                TaskAssigneeEntity(
+                    taskCardId = updatedTask.cardId,
+                    employeeId = assignee.employeeId,
+                    complete = assignee.complete
+                )
             )
-            taskDao.update(updatedEntity)
-            
-            // Обновляем связанные сущности
-            response.assignees?.let { assignees ->
-                taskAssigneeDao.deleteByTaskId(entity.cardId)
-                assignees.forEach { assignee ->
-                    taskAssigneeDao.insert(
-                        ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity(
-                            taskCardId = entity.cardId,
-                            employeeId = assignee.employeeId,
-                            complete = assignee.complete
-                        )
-                    )
-                }
-            }
-            
-            response.checkList?.let { checkList ->
-                checklistTaskDao.deleteByTaskId(entity.cardId)
-                checkList.forEach { checkItem ->
-                    checklistTaskDao.insert(
-                        ru.kolesnik.potok.core.database.entitys.ChecklistTaskEntity(
-                            id = checkItem.id,
-                            taskCardId = entity.cardId,
-                            title = checkItem.title,
-                            done = checkItem.done,
-                            placement = checkItem.placement,
-                            responsibles = checkItem.responsibles,
-                            deadline = checkItem.deadline
-                        )
-                    )
-                }
-            }
         }
         
-        return getTaskById(task.id!!)!!
+        return entity.toDomain()
     }
 
     override suspend fun deleteTask(taskId: String) {
-        val entity = taskDao.getByExternalId(taskId)
-        if (entity != null) {
-            // Здесь должен быть вызов API для удаления задачи, но в API нет такого метода
-            // Поэтому просто удаляем из локальной базы данных
-            taskDao.delete(entity)
+        try {
+            // Архивируем задачу на сервере
+            taskApi.archiveTask(taskId)
+            
+            // Находим задачу в базе данных
+            val taskUuid = try {
+                UUID.fromString(taskId)
+            } catch (e: Exception) {
+                val task = taskDao.getByExternalId(taskId)
+                task?.cardId
+            }
+            
+            // Помечаем задачу как удаленную в базе данных
+            taskUuid?.let {
+                taskDao.markAsArchived(it, OffsetDateTime.now())
+            }
+        } catch (e: Exception) {
+            // Обработка ошибок
+            throw e
         }
     }
 
     override suspend fun closeTask(taskId: String, flowId: String) {
-        // Перемещаем задачу в поток "Завершено"
-        val request = FlowPositionRq(
-            flowId = UUID.fromString(flowId),
-            position = 0 // Помещаем в начало списка
-        )
-        
-        api.moveTaskToFlow(taskId, request)
-        
-        // Обновляем задачу в локальной базе данных
-        val entity = taskDao.getByExternalId(taskId)
-        if (entity != null) {
-            taskDao.moveToFlow(entity.cardId, UUID.fromString(flowId), 0)
+        try {
+            // Перемещаем задачу в поток "Завершено"
+            val request = FlowPositionRq(
+                flowId = UUID.fromString(flowId),
+                position = 0 // Помещаем в начало списка
+            )
+            
+            taskApi.moveTaskToFlow(taskId, request)
+            
+            // Обновляем задачу в базе данных
+            val taskUuid = try {
+                UUID.fromString(taskId)
+            } catch (e: Exception) {
+                val task = taskDao.getByExternalId(taskId)
+                task?.cardId
+            }
+            
+            taskUuid?.let {
+                taskDao.moveToFlow(it, UUID.fromString(flowId), 0)
+            }
+        } catch (e: Exception) {
+            // Обработка ошибок
+            throw e
+        }
+    }
+    
+    private fun TaskEntity.toDomain(): Task = Task(
+        id = externalId,
+        title = title,
+        subtitle = subtitle,
+        mainOrder = mainOrder,
+        source = source,
+        taskOwner = taskOwner,
+        creationDate = creationDate,
+        payload = payload,
+        internalId = internalId,
+        lifeAreaPlacement = lifeAreaPlacement,
+        flowPlacement = flowPlacement,
+        assignees = getAssignees(cardId),
+        commentCount = commentCount,
+        attachmentCount = attachmentCount,
+        checkList = getCheckList(cardId),
+        lifeAreaId = lifeAreaId,
+        flowId = flowId
+    )
+    
+    private fun TaskEntity.toDomainMain(): TaskMain = TaskMain(
+        id = externalId ?: cardId.toString(),
+        title = title,
+        source = source,
+        taskOwner = taskOwner,
+        creationDate = creationDate,
+        deadline = payload.deadline,
+        internalId = internalId,
+        lifeAreaPlacement = lifeAreaPlacement,
+        flowPlacement = flowPlacement,
+        assignees = getAssignees(cardId),
+        commentCount = commentCount,
+        attachmentCount = attachmentCount,
+        lifeAreaId = lifeAreaId,
+        flowId = flowId
+    )
+    
+    private suspend fun getAssignees(taskId: UUID): List<TaskAssignee> {
+        return taskAssigneeDao.getByTaskId(taskId).map {
+            TaskAssignee(
+                employeeId = it.employeeId,
+                complete = it.complete
+            )
+        }
+    }
+    
+    private suspend fun getCheckList(taskId: UUID): List<ru.kolesnik.potok.core.model.ChecklistTask> {
+        return checklistTaskDao.getByTaskId(taskId).map {
+            ru.kolesnik.potok.core.model.ChecklistTask(
+                id = it.id,
+                title = it.title,
+                done = it.done ?: false,
+                placement = it.placement ?: 0,
+                responsibles = it.responsibles,
+                deadline = it.deadline
+            )
         }
     }
 }

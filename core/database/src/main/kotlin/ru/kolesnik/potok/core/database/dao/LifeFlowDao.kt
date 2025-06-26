@@ -33,7 +33,7 @@ interface LifeFlowDao {
 
     @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
     suspend fun getByAreaId(areaId: UUID): List<LifeFlowEntity>
-
+    
     @Query("SELECT * FROM life_flows WHERE areaId = :areaId ORDER BY placement ASC")
     fun getByAreaIdFlow(areaId: UUID): Flow<List<LifeFlowEntity>>
 

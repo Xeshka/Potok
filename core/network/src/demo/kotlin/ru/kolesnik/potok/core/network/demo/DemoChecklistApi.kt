@@ -12,45 +12,43 @@ class DemoChecklistApi @Inject constructor(
 ) : ChecklistApi {
     
     override suspend fun getChecklist(taskId: String): List<ChecklistTaskDTO> {
-        // Заглушка для демо-режима
-        return dataSource.getFull()
-            .flatMap { it.flows ?: emptyList() }
-            .flatMap { it.tasks ?: emptyList() }
-            .find { it.id == taskId }
-            ?.checkList?.map {
-                ChecklistTaskDTO(
-                    id = it.id,
-                    title = it.title,
-                    done = it.done,
-                    placement = it.placement,
-                    responsibles = it.responsibles,
-                    deadline = it.deadline
-                )
-            } ?: emptyList()
+        // Ищем задачу в демо-данных
+        val allAreas = dataSource.getFullLifeAreas()
+        for (area in allAreas) {
+            for (flow in area.flows ?: emptyList()) {
+                for (task in flow.tasks ?: emptyList()) {
+                    if (task.id == taskId || task.cardId.toString() == taskId) {
+                        return task.checkList ?: emptyList()
+                    }
+                }
+            }
+        }
+        
+        return emptyList()
     }
     
     override suspend fun createChecklist(taskId: String, request: ChecklistRq): ChecklistDTO {
-        // Заглушка для демо-режима
-        return ChecklistDTO(
-            checklist = request.checklist.mapIndexed { index, item ->
-                ChecklistTaskDTO(
-                    id = UUID.randomUUID(),
-                    title = item.title,
-                    done = item.done,
-                    placement = index,
-                    responsibles = item.responsibles,
-                    deadline = item.deadline
-                )
-            }
-        )
+        // Создаем заглушку для ответа
+        val checklistTasks = request.checklist.mapIndexed { index, item ->
+            ChecklistTaskDTO(
+                id = UUID.randomUUID(),
+                title = item.title,
+                done = item.done ?: false,
+                placement = index,
+                responsibles = item.responsibles,
+                deadline = item.deadline
+            )
+        }
+        
+        return ChecklistDTO(checklist = checklistTasks)
     }
     
     override suspend fun moveChecklistTask(request: ChecklistTaskMoveRq) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun updateChecklistTaskTitle(checklistTaskId: UUID, request: ChecklistTaskTitleRq): ChecklistTaskDTO {
-        // Заглушка для демо-режима
+        // Возвращаем заглушку с обновленным названием
         return ChecklistTaskDTO(
             id = checklistTaskId,
             title = request.title,
@@ -60,14 +58,14 @@ class DemoChecklistApi @Inject constructor(
     }
     
     override suspend fun deleteChecklistTask(checklistTaskId: UUID) {
-        // Заглушка для демо-режима
+        // Пустая реализация для демо-режима
     }
     
     override suspend fun updateChecklistTaskDeadline(checklistTaskId: UUID, request: ChecklistTaskDeadlineRq): ChecklistTaskDTO {
-        // Заглушка для демо-режима
+        // Возвращаем заглушку с обновленным дедлайном
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Task",
+            title = "Задача чек-листа",
             done = false,
             placement = 0,
             deadline = request.deadline
@@ -75,10 +73,10 @@ class DemoChecklistApi @Inject constructor(
     }
     
     override suspend fun updateChecklistTaskResponsibles(checklistTaskId: UUID, request: ChecklistTaskResponsiblesRq): ChecklistTaskDTO {
-        // Заглушка для демо-режима
+        // Возвращаем заглушку с обновленными ответственными
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Task",
+            title = "Задача чек-листа",
             done = false,
             placement = 0,
             responsibles = request.responsibles
@@ -86,17 +84,17 @@ class DemoChecklistApi @Inject constructor(
     }
     
     override suspend fun updateChecklistTaskStatus(checklistTaskId: UUID, done: Boolean): ChecklistTaskDTO {
-        // Заглушка для демо-режима
+        // Возвращаем заглушку с обновленным статусом
         return ChecklistTaskDTO(
             id = checklistTaskId,
-            title = "Task",
+            title = "Задача чек-листа",
             done = done,
             placement = 0
         )
     }
     
     override suspend fun createChecklistTask(taskId: String, request: ChecklistTaskTitleRq): ChecklistTaskDTO {
-        // Заглушка для демо-режима
+        // Создаем заглушку для ответа
         return ChecklistTaskDTO(
             id = UUID.randomUUID(),
             title = request.title,

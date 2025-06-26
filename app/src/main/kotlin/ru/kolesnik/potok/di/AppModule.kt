@@ -4,8 +4,10 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import ru.kolesnik.potok.core.network.SyncFullDataSource
-import ru.kolesnik.potok.core.network.demo.DemoSyncFullDataSource
+import ru.kolesnik.potok.core.datasource.repository.FlowRepositoryImpl
+import ru.kolesnik.potok.core.datasource.repository.FullProjectRepositoryImpl
+import ru.kolesnik.potok.core.datasource.repository.LifeAreaRepositoryImpl
+import ru.kolesnik.potok.core.datasource.repository.TaskRepositoryImpl
 import ru.kolesnik.potok.core.network.repository.FlowRepository
 import ru.kolesnik.potok.core.network.repository.FullProjectRepository
 import ru.kolesnik.potok.core.network.repository.LifeAreaRepository
@@ -18,25 +20,17 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideFullProjectRepository(repository: FullProjectRepository): FullProjectRepository {
-        return repository
-    }
+    fun provideFullProjectRepository(impl: FullProjectRepositoryImpl): FullProjectRepository = impl
     
     @Provides
     @Singleton
-    fun provideLifeAreaRepository(repository: LifeAreaRepository): LifeAreaRepository {
-        return repository
-    }
+    fun provideLifeAreaRepository(impl: LifeAreaRepositoryImpl): LifeAreaRepository = impl
     
     @Provides
     @Singleton
-    fun provideFlowRepository(repository: FlowRepository): FlowRepository {
-        return repository
-    }
+    fun provideFlowRepository(impl: FlowRepositoryImpl): FlowRepository = impl
     
     @Provides
     @Singleton
-    fun provideTaskRepository(repository: TaskRepository): TaskRepository {
-        return repository
-    }
+    fun provideTaskRepository(impl: TaskRepositoryImpl): TaskRepository = impl
 }
