@@ -152,7 +152,7 @@ class TaskDetailViewModel @Inject constructor(
     private fun addComment(text: String) {
         viewModelScope.launch {
             try {
-                when (val result = commentRepository.addComment(taskId, text)) {
+                when (val result = commentRepository.createComment(taskId, text)) {
                     is Result.Success -> {
                         // Комментарий автоматически появится через Flow
                     }

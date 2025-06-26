@@ -94,14 +94,14 @@ dependencies {
 
     testDemoImplementation(libs.robolectric)
     testDemoImplementation(libs.roborazzi)
-    testDemoImplementation(projects.core.screenshotTesting)
+    //testDemoImplementation(projects.core.screenshotTesting)
 
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.navigation.testing)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.hilt.android.testing)
 
-    baselineProfile(projects.benchmarks)
+    //baselineProfile(projects.benchmarks)
 }
 
 baselineProfile {
