@@ -1,13 +1,8 @@
 package ru.kolesnik.potok.core.network.demo
 
-import ru.kolesnik.potok.core.network.api.TaskApi
-import ru.kolesnik.potok.core.network.model.api.FlowPositionRq
-import ru.kolesnik.potok.core.network.model.api.LifeAreaPositionRq
-import ru.kolesnik.potok.core.network.model.api.TaskArchivePageDTO
-import ru.kolesnik.potok.core.network.model.api.TaskExternalIds
-import ru.kolesnik.potok.core.network.model.api.TaskRq
-import ru.kolesnik.potok.core.network.model.api.TaskRs
+import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.model.potok.PatchPayload
+import ru.kolesnik.potok.core.network.retrofit.TaskApi
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Inject
@@ -19,88 +14,94 @@ class DemoTaskApi @Inject constructor(
 ) : TaskApi {
     
     override suspend fun createTask(request: TaskRq): TaskRs {
-        // Создаем заглушечную задачу
-        val taskId = UUID.randomUUID().toString().substring(0, 8)
-        val cardId = UUID.randomUUID()
-        
+        // Create a mock task response
         return TaskRs(
-            id = taskId,
-            title = request.payload.title ?: "Новая задача",
+            id = UUID.randomUUID().toString().substring(0, 8),
+            title = request.payload.title ?: "New Task",
             subtitle = request.payload.subtitle,
-            mainOrder = null,
-            source = request.payload.source,
-            taskOwner = "449927", // Текущий пользователь
+            mainOrder = 0,
+            source = request.payload.source ?: "TRELLO",
+            taskOwner = "449927", // Default demo user
             creationDate = OffsetDateTime.now(),
             payload = request.payload,
-            internalId = System.currentTimeMillis(),
+            internalId = (1000..9999).random().toLong(),
             lifeAreaPlacement = 1,
             flowPlacement = 1,
             assignees = request.payload.assignees?.map { 
-                ru.kolesnik.potok.core.network.model.api.TaskAssigneeRs(
-                    employeeId = it,
-                    complete = false
-                )
+                TaskAssigneeRs(employeeId = it, complete = false) 
             },
             commentCount = 0,
             attachmentCount = 0,
-            cardId = cardId
+            checkList = emptyList(),
+            cardId = UUID.randomUUID()
         )
     }
     
     override suspend fun updateTask(taskId: String, request: PatchPayload) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun getTaskId(taskId: String): Long {
-        // Возвращаем заглушечный ID
-        return 12345L
+        // Return a random ID for demo
+        return (1000..9999).random().toLong()
     }
     
     override suspend fun checkTaskAllowed(taskId: Long) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun getTaskDetails(taskId: String): TaskRs {
-        // Получаем все сферы жизни
-        val areas = dataSource.gtFullNew()
-        
-        // Ищем задачу по ID во всех сферах и потоках
-        for (area in areas) {
+        // Find the task in our demo data
+        val allAreas = dataSource.getFullLifeAreas()
+        for (area in allAreas) {
             area.flows?.forEach { flow ->
-                flow.tasks?.find { it.id == taskId || it.cardId.toString() == taskId }?.let {
-                    return it
-                }
+                flow.tasks?.find { it.id == taskId }?.let { return it }
             }
         }
         
-        // Если задача не найдена, возвращаем заглушечную задачу
+        // If not found, return a mock
         return TaskRs(
             id = taskId,
-            title = "Задача не найдена",
+            title = "Task not found",
+            subtitle = null,
+            mainOrder = 0,
+            source = "DEMO",
             taskOwner = "449927",
             creationDate = OffsetDateTime.now(),
-            payload = ru.kolesnik.potok.core.network.model.api.TaskPayload(
-                title = "Задача не найдена",
+            payload = TaskPayload(
+                title = "Task not found",
+                description = "This is a mock task for demo purposes",
                 assignees = emptyList()
             ),
+            internalId = 0,
+            lifeAreaPlacement = 0,
+            flowPlacement = 0,
+            assignees = emptyList(),
+            commentCount = 0,
+            attachmentCount = 0,
             cardId = UUID.randomUUID()
         )
     }
     
     override suspend fun moveTaskToFlow(taskId: String, request: FlowPositionRq) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun moveTaskToLifeArea(taskId: String, request: LifeAreaPositionRq) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun returnTask(taskId: String, assignee: String) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
-    override suspend fun getTaskArchive(limit: Int?, offset: Int?, sort: String?, status: String?): TaskArchivePageDTO {
-        // Возвращаем пустой список архивных задач
+    override suspend fun getTaskArchive(
+        limit: Int?,
+        offset: Int?,
+        sort: String?,
+        status: String?
+    ): TaskArchivePageDTO {
+        // Return empty archive for demo
         return TaskArchivePageDTO(
             limit = limit ?: 10,
             offset = offset ?: 0,
@@ -110,28 +111,38 @@ class DemoTaskApi @Inject constructor(
     }
     
     override suspend fun deleteTasksFromArchive(taskIds: String) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun restoreTasksFromArchive(request: TaskExternalIds) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun archiveTask(taskId: String) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun getArchivedTaskDetails(taskId: String): TaskRs {
-        // Возвращаем заглушечную задачу
+        // Return a mock archived task
         return TaskRs(
             id = taskId,
-            title = "Архивная задача",
+            title = "Archived Task",
+            subtitle = null,
+            mainOrder = 0,
+            source = "DEMO",
             taskOwner = "449927",
-            creationDate = OffsetDateTime.now(),
-            payload = ru.kolesnik.potok.core.network.model.api.TaskPayload(
-                title = "Архивная задача",
+            creationDate = OffsetDateTime.now().minusDays(30),
+            payload = TaskPayload(
+                title = "Archived Task",
+                description = "This is a mock archived task for demo purposes",
                 assignees = emptyList()
             ),
+            internalId = 0,
+            lifeAreaPlacement = 0,
+            flowPlacement = 0,
+            assignees = emptyList(),
+            commentCount = 0,
+            attachmentCount = 0,
             cardId = UUID.randomUUID()
         )
     }

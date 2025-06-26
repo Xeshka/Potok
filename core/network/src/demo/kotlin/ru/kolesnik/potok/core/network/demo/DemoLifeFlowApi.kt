@@ -1,9 +1,6 @@
 package ru.kolesnik.potok.core.network.demo
 
-import ru.kolesnik.potok.core.network.model.api.FlowStatus
-import ru.kolesnik.potok.core.network.model.api.LifeFlowDTO
-import ru.kolesnik.potok.core.network.model.api.LifeFlowMoveDTO
-import ru.kolesnik.potok.core.network.model.api.LifeFlowRq
+import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.retrofit.LifeFlowApi
 import java.util.UUID
 import javax.inject.Inject
@@ -15,22 +12,17 @@ class DemoLifeFlowApi @Inject constructor(
 ) : LifeFlowApi {
     
     override suspend fun moveLifeFlow(request: LifeFlowMoveDTO) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun getLifeFlows(lifeAreaId: UUID): List<LifeFlowDTO> {
-        // Получаем все сферы жизни
-        val areas = dataSource.gtFullNew()
-        
-        // Находим нужную сферу по ID
-        val area = areas.find { it.id == lifeAreaId }
-        
-        // Возвращаем потоки для этой сферы или пустой список
-        return area?.flows ?: emptyList()
+        return dataSource.getFullLifeAreas()
+            .find { it.id == lifeAreaId }
+            ?.flows ?: emptyList()
     }
     
     override suspend fun createLifeFlow(lifeAreaId: UUID, request: LifeFlowRq): LifeFlowDTO {
-        // Создаем заглушечный поток
+        // Return a mock flow for demo mode
         return LifeFlowDTO(
             id = UUID.randomUUID(),
             areaId = lifeAreaId,
@@ -42,14 +34,28 @@ class DemoLifeFlowApi @Inject constructor(
     }
     
     override suspend fun collocateLifeFlows(lifeAreaId: UUID, flowIds: List<UUID>) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
     
     override suspend fun updateLifeFlow(id: UUID, request: LifeFlowRq): LifeFlowDTO {
-        // Возвращаем обновленный поток
+        // Find the flow in our demo data
+        val allAreas = dataSource.getFullLifeAreas()
+        for (area in allAreas) {
+            val flow = area.flows?.find { it.id == id }
+            if (flow != null) {
+                // Return an updated version
+                return flow.copy(
+                    title = request.title,
+                    style = request.style ?: flow.style,
+                    placement = request.placement ?: flow.placement
+                )
+            }
+        }
+        
+        // If not found, return a mock
         return LifeFlowDTO(
             id = id,
-            areaId = UUID.randomUUID(), // В реальном приложении здесь должен быть правильный ID сферы
+            areaId = UUID.randomUUID(), // We don't know the area ID here
             title = request.title,
             style = request.style ?: "style1",
             placement = request.placement,
@@ -58,6 +64,6 @@ class DemoLifeFlowApi @Inject constructor(
     }
     
     override suspend fun deleteLifeFlow(id: UUID) {
-        // Пустая реализация для демо
+        // No-op in demo mode
     }
 }

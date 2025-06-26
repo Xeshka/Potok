@@ -64,8 +64,6 @@ dependencies {
     implementation(projects.core.data)
     implementation(projects.core.model)
     implementation(projects.core.analytics)
-    implementation(projects.core.network)
-    implementation(projects.core.database)
     //implementation(projects.sync.work)
 
     implementation(libs.androidx.activity.compose)

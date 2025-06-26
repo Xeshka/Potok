@@ -1,11 +1,7 @@
 package ru.kolesnik.potok.core.network.demo
 
-import ru.kolesnik.potok.core.network.api.CommentApi
-import ru.kolesnik.potok.core.network.model.api.SearchQuery
-import ru.kolesnik.potok.core.network.model.api.SearchRs
-import ru.kolesnik.potok.core.network.model.api.TaskCommentDTO
-import ru.kolesnik.potok.core.network.model.api.TaskCommentPageDTO
-import ru.kolesnik.potok.core.network.model.api.TaskCommentRq
+import ru.kolesnik.potok.core.network.model.api.*
+import ru.kolesnik.potok.core.network.retrofit.CommentApi
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Inject
@@ -22,18 +18,13 @@ class DemoCommentApi @Inject constructor() : CommentApi {
         offset: Int,
         sort: String?
     ): TaskCommentPageDTO {
-        val taskComments = comments[taskId] ?: emptyList()
-        
-        // Применяем пагинацию
-        val paginatedComments = taskComments
-            .drop(offset)
-            .take(limit)
+        val taskComments = comments[taskId] ?: mutableListOf()
         
         return TaskCommentPageDTO(
             limit = limit,
             offset = offset,
             total = taskComments.size,
-            items = paginatedComments
+            items = taskComments.drop(offset).take(limit)
         )
     }
     
@@ -44,42 +35,48 @@ class DemoCommentApi @Inject constructor() : CommentApi {
         val comment = TaskCommentDTO(
             id = commentId,
             parentCommentId = request.parentCommentId,
-            owner = "449927", // Текущий пользователь
+            owner = "449927", // Default demo user
             text = request.text,
             createdAt = now,
             updatedAt = now
         )
         
-        val taskComments = comments.getOrPut(taskId) { mutableListOf() }
-        taskComments.add(comment)
+        if (!comments.containsKey(taskId)) {
+            comments[taskId] = mutableListOf()
+        }
+        
+        comments[taskId]?.add(comment)
         
         return comment
     }
     
     override suspend fun getComment(commentId: UUID): TaskCommentDTO {
-        // Ищем комментарий по ID
-        for ((_, taskComments) in comments) {
+        // Search for the comment in all tasks
+        for (taskComments in comments.values) {
             val comment = taskComments.find { it.id == commentId }
             if (comment != null) {
                 return comment
             }
         }
         
-        // Если комментарий не найден, возвращаем заглушечный комментарий
+        // If not found, return a mock
         return TaskCommentDTO(
             id = commentId,
-            text = "Комментарий не найден",
+            parentCommentId = null,
+            owner = "449927",
+            text = "Comment not found",
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now()
         )
     }
     
     override suspend fun updateComment(commentId: UUID, request: TaskCommentRq): TaskCommentDTO {
-        // Ищем комментарий по ID
-        for ((_, taskComments) in comments) {
+        // Search for the comment in all tasks and update it
+        for (taskComments in comments.values) {
             val index = taskComments.indexOfFirst { it.id == commentId }
             if (index != -1) {
-                val updatedComment = taskComments[index].copy(
+                val oldComment = taskComments[index]
+                val updatedComment = oldComment.copy(
                     text = request.text,
                     updatedAt = OffsetDateTime.now()
                 )
@@ -88,9 +85,11 @@ class DemoCommentApi @Inject constructor() : CommentApi {
             }
         }
         
-        // Если комментарий не найден, возвращаем заглушечный комментарий
+        // If not found, return a mock
         return TaskCommentDTO(
             id = commentId,
+            parentCommentId = request.parentCommentId,
+            owner = "449927",
             text = request.text,
             createdAt = OffsetDateTime.now(),
             updatedAt = OffsetDateTime.now()
@@ -98,19 +97,14 @@ class DemoCommentApi @Inject constructor() : CommentApi {
     }
     
     override suspend fun deleteComment(commentId: UUID) {
-        // Удаляем комментарий по ID
-        for ((_, taskComments) in comments) {
-            val index = taskComments.indexOfFirst { it.id == commentId }
-            if (index != -1) {
-                taskComments.removeAt(index)
-                break
-            }
+        // Search for the comment in all tasks and remove it
+        for (taskComments in comments.values) {
+            taskComments.removeIf { it.id == commentId }
         }
     }
     
     override suspend fun searchComments(taskId: String, query: String): SearchRs {
-        // Ищем комментарии, содержащие запрос
-        val taskComments = comments[taskId] ?: emptyList()
+        val taskComments = comments[taskId] ?: mutableListOf()
         val matchingComments = taskComments.filter { 
             it.text.contains(query, ignoreCase = true) 
         }

@@ -41,6 +41,15 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 @Suppress("UnstableApiUsage")
                 testOptions.animationsDisabled = true
                 configureGradleManagedDevices(this)
+                
+                // Add support for vector drawables for pre-Lollipop devices
+                defaultConfig.vectorDrawables.useSupportLibrary = true
+                
+                // Enable multidex for API level < 21
+                defaultConfig.multiDexEnabled = true
+                
+                // Configure NDK version
+                ndkVersion = "26.1.10909125"
             }
             extensions.configure<ApplicationAndroidComponentsExtension> {
                 configurePrintApksTask(this)

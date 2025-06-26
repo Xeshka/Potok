@@ -13,12 +13,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ru.kolesnik.potok.core.model.FlowId
 import ru.kolesnik.potok.core.model.Task
-import ru.kolesnik.potok.core.model.TaskPayload
 import ru.kolesnik.potok.core.network.repository.FlowRepository
 import ru.kolesnik.potok.core.network.repository.FullProjectRepository
 import ru.kolesnik.potok.core.network.repository.LifeAreaRepository
 import ru.kolesnik.potok.core.network.repository.TaskRepository
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,6 +32,7 @@ class LifeAreaViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
 
     val lifeAreas = lifeAreaRepository.getLifeAreas()
         .stateIn(
@@ -57,7 +56,7 @@ class LifeAreaViewModel @Inject constructor(
             initialValue = emptyMap()
         )
 
-    val tasks = lifeAreas
+    var tasks = lifeAreas
         .flatMapLatest { areas ->
             combine(areas.map { area ->
                 taskRepository.getTaskMainByArea(area.id.toString())
@@ -73,40 +72,59 @@ class LifeAreaViewModel @Inject constructor(
         )
 
     fun deleteTask(taskId: String) = viewModelScope.launch {
-        try {
-            taskRepository.deleteTask(taskId)
-        } catch (e: Exception) {
-            _error.value = "Ошибка при удалении задачи: ${e.message}"
-        }
+        taskRepository.deleteTask(taskId)
+        tasks = lifeAreas
+            .flatMapLatest { areas ->
+                combine(areas.map { area ->
+                    taskRepository.getTaskMainByArea(area.id.toString())
+                        .map { area.id to it }
+                }) { taskList ->
+                    taskList.associate { it }
+                }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
+
     }
 
     fun createTask(task: Task) = viewModelScope.launch {
-        try {
-            val taskWithPayload = if (task.payload == null) {
-                task.copy(
-                    payload = TaskPayload(
-                        title = task.title,
-                        description = "",
-                        important = false,
-                        assignees = emptyList()
-                    )
-                )
-            } else {
-                task
+        taskRepository.createTask(task)
+        tasks = lifeAreas
+            .flatMapLatest { areas ->
+                combine(areas.map { area ->
+                    taskRepository.getTaskMainByArea(area.id.toString())
+                        .map { area.id to it }
+                }) { taskList ->
+                    taskList.associate { it }
+                }
             }
-            
-            projectRepository.createTask(taskWithPayload)
-        } catch (e: Exception) {
-            _error.value = "Ошибка при создании задачи: ${e.message}"
-        }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
     }
 
     fun closeTask(taskId: String, flowId: FlowId) = viewModelScope.launch {
-        try {
-            taskRepository.closeTask(taskId, flowId.toString())
-        } catch (e: Exception) {
-            _error.value = "Ошибка при закрытии задачи: ${e.message}"
-        }
+        taskRepository.closeTask(taskId, flowId.toString())
+        tasks = lifeAreas
+            .flatMapLatest { areas ->
+                combine(areas.map { area ->
+                    taskRepository.getTaskMainByArea(area.id.toString())
+                        .map { area.id to it }
+                }) { taskList ->
+                    taskList.associate { it }
+                }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyMap()
+            )
+
     }
 
     init {

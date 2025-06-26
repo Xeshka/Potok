@@ -1,65 +1,75 @@
 package ru.kolesnik.potok.core.datasource.repository
 
 import ru.kolesnik.potok.core.database.AppDatabase
-import ru.kolesnik.potok.core.database.dao.LifeAreaDao
-import ru.kolesnik.potok.core.database.dao.LifeFlowDao
-import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.network.api.LifeAreaApi
 import javax.inject.Inject
 
 interface SyncRepository {
-    suspend fun sync()
+    suspend fun syncAll()
 }
 
 class SyncRepositoryImpl @Inject constructor(
-    private val lifeAreaApi: LifeAreaApi,
+    private val api: LifeAreaApi,
     private val db: AppDatabase
 ) : SyncRepository {
-
-    override suspend fun sync() {
-        // Получаем все данные с сервера
-        val areas = lifeAreaApi.getFullLifeAreas()
-        
-        // Очищаем базу данных перед синхронизацией
-        db.clearAllTables()
-        
-        // Сохраняем сферы жизни
-        val lifeAreaEntities = areas.map { it.toEntity() }
-        db.lifeAreaDao().insertAll(lifeAreaEntities)
-        
-        // Сохраняем потоки для каждой сферы
-        areas.forEach { area ->
-            area.flows?.let { flows ->
-                val flowEntities = flows.map { it.toEntity() }
-                db.lifeFlowDao().insertAll(flowEntities)
+    
+    override suspend fun syncAll() {
+        try {
+            // Get all life areas with flows and tasks
+            val lifeAreas = api.getFullLifeAreas()
+            
+            // Use a transaction to ensure data consistency
+            db.runInTransaction {
+                // Clear existing data
+                db.lifeAreaDao().deleteAll()
+                db.lifeFlowDao().deleteAll()
+                db.taskDao().deleteAll()
+                db.checklistTaskDao().deleteAll()
+                db.taskAssigneeDao().deleteAll()
+                db.taskCommentDao().deleteAll()
                 
-                // Сохраняем задачи для каждого потока
-                flows.forEach { flow ->
-                    flow.tasks?.let { tasks ->
-                        tasks.forEach { task ->
-                            // Сохраняем основную информацию о задаче
-                            val taskEntity = task.toEntity()
-                            db.taskDao().insert(taskEntity)
-                            
-                            // Сохраняем ответственных за задачу
-                            task.assignees?.let { assignees ->
-                                val assigneeEntities = assignees.map { 
-                                    it.toEntity(taskEntity.cardId)
+                // Insert life areas
+                val lifeAreaEntities = lifeAreas.map { it.toEntity() }
+                db.lifeAreaDao().insertAll(lifeAreaEntities)
+                
+                // Insert flows for each life area
+                lifeAreas.forEach { lifeArea ->
+                    lifeArea.flows?.let { flows ->
+                        val flowEntities = flows.map { it.toEntity() }
+                        db.lifeFlowDao().insertAll(flowEntities)
+                        
+                        // Insert tasks for each flow
+                        flows.forEach { flow ->
+                            flow.tasks?.let { tasks ->
+                                val taskEntities = tasks.map { it.toEntity() }
+                                db.taskDao().insertAll(taskEntities)
+                                
+                                // Insert assignees for each task
+                                tasks.forEach { task ->
+                                    task.assignees?.let { assignees ->
+                                        val assigneeEntities = assignees.map { 
+                                            it.toEntity(task.cardId) 
+                                        }
+                                        db.taskAssigneeDao().insertAll(assigneeEntities)
+                                    }
+                                    
+                                    // Insert checklist items for each task
+                                    task.checkList?.let { checklistItems ->
+                                        val checklistEntities = checklistItems.map { 
+                                            it.toChecklistEntity(task.cardId) 
+                                        }
+                                        db.checklistTaskDao().insertAll(checklistEntities)
+                                    }
                                 }
-                                db.taskAssigneeDao().insertAll(assigneeEntities)
-                            }
-                            
-                            // Сохраняем чек-лист задачи
-                            task.checkList?.let { checkList ->
-                                val checkListEntities = checkList.map { 
-                                    it.toChecklistEntity(taskEntity.cardId)
-                                }
-                                db.checklistTaskDao().insertAll(checkListEntities)
                             }
                         }
                     }
                 }
             }
+        } catch (e: Exception) {
+            // Log error but don't crash
+            e.printStackTrace()
+            throw e
         }
     }
 }

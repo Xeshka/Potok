@@ -2,26 +2,9 @@ package ru.kolesnik.potok.core.model.extensions
 
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
 import java.util.UUID
 
-// Маппер из EmployeeResponse в Employee
-fun EmployeeResponse.toDomain(): Employee {
-    return Employee(
-        employeeNumber = employeeNumber,
-        timezone = timezone,
-        terBank = terBank,
-        employeeId = employeeId,
-        lastName = lastName,
-        firstName = firstName,
-        middleName = middleName,
-        position = position,
-        mainEmail = mainEmail,
-        avatar = avatar
-    )
-}
-
-// Маппер из LifeAreaDTO в LifeArea
+// LifeArea mappers
 fun LifeAreaDTO.toDomain(): LifeArea {
     return LifeArea(
         id = id,
@@ -31,20 +14,19 @@ fun LifeAreaDTO.toDomain(): LifeArea {
         placement = placement,
         isDefault = isDefault,
         isTheme = isTheme,
-        shared = sharedInfo?.toDomain()
+        shared = sharedInfo?.toDomain(id)
     )
 }
 
-// Маппер из LifeAreaSharedInfo в модель домена
-fun LifeAreaSharedInfo.toDomain(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo {
-    return ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-        areaId = UUID.randomUUID(), // Здесь нужно передавать правильный ID сферы
+fun LifeAreaSharedInfo.toDomain(areaId: UUID): LifeAreaSharedInfo {
+    return LifeAreaSharedInfo(
+        areaId = areaId,
         owner = owner,
         recipients = recipients
     )
 }
 
-// Маппер из LifeFlowDTO в LifeFlow
+// LifeFlow mappers
 fun LifeFlowDTO.toDomain(): LifeFlow {
     return LifeFlow(
         id = id.toString(),
@@ -52,22 +34,31 @@ fun LifeFlowDTO.toDomain(): LifeFlow {
         title = title,
         style = style,
         placement = placement,
-        status = status?.toDomain() ?: FlowStatus.NEW
+        status = status ?: FlowStatus.NEW
     )
 }
 
-// Маппер из FlowStatus API в FlowStatus модели
-fun FlowStatus.toDomain(): ru.kolesnik.potok.core.model.FlowStatus {
-    return when (this) {
-        FlowStatus.NEW -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-        FlowStatus.IN_PROGRESS -> ru.kolesnik.potok.core.model.FlowStatus.IN_PROGRESS
-        FlowStatus.COMPLETED -> ru.kolesnik.potok.core.model.FlowStatus.COMPLETED
-        FlowStatus.CUSTOM -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
-    }
+// Task mappers
+fun TaskRs.toDomain(): TaskMain {
+    return TaskMain(
+        id = id,
+        title = title,
+        source = source,
+        taskOwner = taskOwner,
+        creationDate = creationDate,
+        deadline = payload.deadline,
+        internalId = internalId,
+        lifeAreaPlacement = lifeAreaPlacement,
+        flowPlacement = flowPlacement,
+        assignees = assignees?.map { it.toDomain() },
+        commentCount = commentCount,
+        attachmentCount = attachmentCount,
+        lifeAreaId = payload.lifeAreaId,
+        flowId = flowId
+    )
 }
 
-// Маппер из TaskRs в Task
-fun TaskRs.toDomain(): Task {
+fun TaskRs.toTaskDomain(): Task {
     return Task(
         id = id,
         title = title,
@@ -85,13 +76,12 @@ fun TaskRs.toDomain(): Task {
         attachmentCount = attachmentCount,
         checkList = checkList?.map { it.toDomain() },
         lifeAreaId = payload.lifeAreaId,
-        flowId = null // Нужно заполнить из контекста
+        flowId = flowId
     )
 }
 
-// Маппер из TaskPayload API в TaskPayload модели
-fun TaskPayload.toDomain(): ru.kolesnik.potok.core.model.TaskPayload {
-    return ru.kolesnik.potok.core.model.TaskPayload(
+fun TaskPayload.toDomain(): TaskPayload {
+    return TaskPayload(
         title = title,
         source = source,
         onMainPage = onMainPage,
@@ -111,11 +101,11 @@ fun TaskPayload.toDomain(): ru.kolesnik.potok.core.model.TaskPayload {
         shortMessage = shortMessage,
         externalId = externalId,
         relatedAssignment = relatedAssignment,
-        meanSource = meanSource
+        meanSource = meanSource,
+        id = id
     )
 }
 
-// Маппер из TaskAssigneeRs в TaskAssignee
 fun TaskAssigneeRs.toDomain(): TaskAssignee {
     return TaskAssignee(
         employeeId = employeeId,
@@ -123,7 +113,6 @@ fun TaskAssigneeRs.toDomain(): TaskAssignee {
     )
 }
 
-// Маппер из ChecklistTaskDTO в ChecklistTask
 fun ChecklistTaskDTO.toDomain(): ChecklistTask {
     return ChecklistTask(
         id = id,

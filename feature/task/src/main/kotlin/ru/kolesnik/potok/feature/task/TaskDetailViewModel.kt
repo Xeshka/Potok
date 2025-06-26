@@ -11,12 +11,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.kolesnik.potok.core.model.Employee
 import ru.kolesnik.potok.core.model.Task
-import ru.kolesnik.potok.core.model.extensions.toDomain
-import ru.kolesnik.potok.core.network.model.potok.PatchPayload
+import ru.kolesnik.potok.core.network.model.employee.toDomain
 import ru.kolesnik.potok.core.network.repository.FullProjectRepository
 import ru.kolesnik.potok.core.network.repository.TaskRepository
 import ru.kolesnik.potok.feature.task.navigation.TaskDetailViewRoute
-import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -47,32 +45,9 @@ class TaskDetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isSaving = true) }
-                
-                // Создаем объект PatchPayload для обновления задачи
-                val taskId = updatedTask.id?.let { UUID.fromString(it) } ?: 
-                             updatedTask.payload?.externalId?.let { UUID.fromString(it) }
-                
-                if (taskId != null) {
-                    val patchPayload = PatchPayload(
-                        title = updatedTask.title,
-                        description = updatedTask.payload?.description,
-                        deadline = updatedTask.payload?.deadline,
-                        important = updatedTask.payload?.important,
-                        assignees = updatedTask.payload?.assignees
-                    )
-                    
-                    taskRepository.updateTask(taskId, patchPayload)
-                    val result = taskRepository.getTaskById(taskId.toString())
-                    
-                    if (result != null) {
-                        loadEmployeesForTask(result)
-                        _state.update { it.copy(task = result) }
-                    }
-                } else {
-                    // Если у задачи нет ID, обновляем только локальное состояние
-                    _state.update { it.copy(task = updatedTask) }
-                }
-                
+                val result = taskRepository.updateAndGetTask(updatedTask)
+                loadEmployeesForTask(result)
+                _state.update { it.copy(task = result) }
                 onSuccess()
             } catch (e: Exception) {
                 _state.update {
