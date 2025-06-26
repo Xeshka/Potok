@@ -19,7 +19,7 @@ private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 private val employeeCache = ConcurrentHashMap<String, EmployeeResponse>()
 
 @Singleton
-internal class RetrofitNetworkFull @Inject constructor(
+internal class AuthApi @Inject constructor(
     networkJson: Json,
     okhttpCallFactory: dagger.Lazy<Call.Factory>,
 ) : AddressbookSource {
