@@ -2,65 +2,61 @@ package ru.kolesnik.potok.core.datasource.repository
 
 import ru.kolesnik.potok.core.database.dao.ChecklistTaskDao
 import ru.kolesnik.potok.core.database.entitys.ChecklistTaskEntity
+import ru.kolesnik.potok.core.model.ChecklistTask
 import ru.kolesnik.potok.core.network.api.ChecklistApi
 import ru.kolesnik.potok.core.network.model.api.*
+import ru.kolesnik.potok.core.network.repository.ChecklistRepository
 import java.util.UUID
 import javax.inject.Inject
-
-interface ChecklistRepository {
-    suspend fun createChecklistTask(taskId: UUID, request: ChecklistTaskTitleRq): UUID
-    suspend fun updateChecklistTaskTitle(itemId: UUID, request: ChecklistTaskTitleRq)
-    suspend fun updateChecklistTaskStatus(itemId: UUID, done: Boolean)
-    suspend fun deleteChecklistTask(itemId: UUID)
-    suspend fun syncChecklistForTask(taskId: UUID)
-    suspend fun getChecklistForTask(taskId: UUID): List<ChecklistTaskEntity>
-}
 
 class ChecklistRepositoryImpl @Inject constructor(
     private val api: ChecklistApi,
     private val checklistTaskDao: ChecklistTaskDao
 ) : ChecklistRepository {
 
-    override suspend fun createChecklistTask(taskId: UUID, request: ChecklistTaskTitleRq): UUID {
-        val response = api.createChecklistTask(taskId.toString(), request)
-        val entity = response.toChecklistEntity(taskId)
+    override suspend fun getChecklistForTask(taskId: String): List<ChecklistTask> {
+        return checklistTaskDao.getByTaskId(UUID.fromString(taskId)).map { it.toDomain() }
+    }
+
+    override suspend fun createChecklistItem(taskId: String, item: ChecklistTask): ChecklistTask {
+        val request = ChecklistTaskTitleRq(item.title)
+        val response = api.createChecklistTask(taskId, request)
+        val entity = response.toEntity(UUID.fromString(taskId))
         checklistTaskDao.insert(entity)
-        return entity.id
+        return entity.toDomain()
     }
 
-    override suspend fun updateChecklistTaskTitle(itemId: UUID, request: ChecklistTaskTitleRq) {
-        api.updateChecklistTaskTitle(itemId, request)
-        checklistTaskDao.updateTitle(itemId, request.title)
+    override suspend fun updateChecklistItem(item: ChecklistTask): ChecklistTask {
+        val request = ChecklistTaskTitleRq(item.title)
+        val response = api.updateChecklistTaskTitle(item.id, request)
+        val entity = response.toEntity(UUID.randomUUID()) // taskId не важен для обновления
+        checklistTaskDao.update(entity)
+        return entity.toDomain()
     }
 
-    override suspend fun updateChecklistTaskStatus(itemId: UUID, done: Boolean) {
-        api.updateChecklistTaskStatus(itemId, done)
-        checklistTaskDao.updateDoneStatus(itemId, done)
-    }
-
-    override suspend fun deleteChecklistTask(itemId: UUID) {
-        api.deleteChecklistTask(itemId)
-        checklistTaskDao.delete(checklistTaskDao.getById(itemId) ?: return)
-    }
-
-    override suspend fun syncChecklistForTask(taskId: UUID) {
-        val checklist = api.getChecklist(taskId.toString())
-        val entities = checklist.map { it.toChecklistEntity(taskId) }
-        checklistTaskDao.deleteByTaskId(taskId)
-        checklistTaskDao.insertAll(entities)
-    }
-
-    override suspend fun getChecklistForTask(taskId: UUID): List<ChecklistTaskEntity> {
-        return checklistTaskDao.getByTaskId(taskId)
+    override suspend fun deleteChecklistItem(itemId: String) {
+        api.deleteChecklistTask(UUID.fromString(itemId))
+        checklistTaskDao.getById(UUID.fromString(itemId))?.let {
+            checklistTaskDao.delete(it)
+        }
     }
 }
 
-fun ChecklistTaskDTO.toChecklistEntity(taskId: UUID): ChecklistTaskEntity = ChecklistTaskEntity(
+private fun ChecklistTaskDTO.toEntity(taskId: UUID): ChecklistTaskEntity = ChecklistTaskEntity(
     id = id,
     taskCardId = taskId,
     title = title,
     done = done ?: false,
     placement = placement ?: 0,
     responsibles = responsibles,
+    deadline = deadline
+)
+
+private fun ChecklistTaskEntity.toDomain(): ChecklistTask = ChecklistTask(
+    id = id,
+    title = title,
+    done = done ?: false,
+    placement = placement ?: 0,
+    responsibles = responsibles?.map { it } ?: emptyList(),
     deadline = deadline
 )
