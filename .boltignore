@@ -11,8 +11,6 @@ docs/
 gradlew
 gradlew.bat
 gradle.properties
-settings.gradle.kts
-build.gradle.kts
 generateModuleGraphs.sh
 
 # Игнорировать документацию и README файлы (кроме core)
