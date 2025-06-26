@@ -2,93 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "38c8eb134878170d225d38a24b1ad693",
+    "identityHash": "115710c16959ca3f260519296ee521ff",
     "entities": [
       {
-        "tableName": "checklist_tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `task_id` TEXT NOT NULL, `title` TEXT NOT NULL, `done` INTEGER NOT NULL, `placement` INTEGER NOT NULL, `deadline` TEXT, PRIMARY KEY(`id`))",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "taskId",
-            "columnName": "task_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "title",
-            "columnName": "title",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "done",
-            "columnName": "done",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "placement",
-            "columnName": "placement",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "deadline",
-            "columnName": "deadline",
-            "affinity": "TEXT",
-            "notNull": false
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
-      },
-      {
-        "tableName": "checklist_task_responsibles",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`checklist_task_id` TEXT NOT NULL, `employee_id` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
-        "fields": [
-          {
-            "fieldPath": "checklistTaskId",
-            "columnName": "checklist_task_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "employeeId",
-            "columnName": "employee_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
-      },
-      {
         "tableName": "life_areas",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `style` TEXT, `tagsId` INTEGER, `placement` INTEGER, `is_default` INTEGER NOT NULL, `is_theme` INTEGER NOT NULL, `only_personal` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `style` TEXT, `tagsId` INTEGER, `placement` INTEGER, `isDefault` INTEGER NOT NULL, `sharedInfo` TEXT, `isTheme` INTEGER NOT NULL, `onlyPersonal` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -122,107 +40,31 @@
           },
           {
             "fieldPath": "isDefault",
-            "columnName": "is_default",
+            "columnName": "isDefault",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
+            "fieldPath": "sharedInfo",
+            "columnName": "sharedInfo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
             "fieldPath": "isTheme",
-            "columnName": "is_theme",
+            "columnName": "isTheme",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
             "fieldPath": "onlyPersonal",
-            "columnName": "only_personal",
+            "columnName": "onlyPersonal",
             "affinity": "INTEGER",
             "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
-      },
-      {
-        "tableName": "life_area_shared_info",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`life_area_id` TEXT NOT NULL, `owner` TEXT NOT NULL, `read_only` INTEGER NOT NULL, `expired_date` TEXT, PRIMARY KEY(`life_area_id`), FOREIGN KEY(`life_area_id`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "lifeAreaId",
-            "columnName": "life_area_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "owner",
-            "columnName": "owner",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "readOnly",
-            "columnName": "read_only",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "expiredDate",
-            "columnName": "expired_date",
-            "affinity": "TEXT",
-            "notNull": false
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "life_area_id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": [
-          {
-            "table": "life_areas",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "life_area_id"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
-      },
-      {
-        "tableName": "life_area_shared_info_recipients",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`shared_info_id` TEXT NOT NULL, `employee_id` TEXT NOT NULL, `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
-        "fields": [
-          {
-            "fieldPath": "sharedInfoId",
-            "columnName": "shared_info_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "employeeId",
-            "columnName": "employee_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
           "columnNames": [
             "id"
           ]
@@ -232,7 +74,7 @@
       },
       {
         "tableName": "life_flows",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `area_id` TEXT NOT NULL, `title` TEXT NOT NULL, `style` TEXT NOT NULL, `placement` INTEGER, `status` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`area_id`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `areaId` TEXT NOT NULL, `title` TEXT NOT NULL, `style` TEXT NOT NULL, `placement` INTEGER, `status` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`areaId`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -242,7 +84,7 @@
           },
           {
             "fieldPath": "areaId",
-            "columnName": "area_id",
+            "columnName": "areaId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -268,7 +110,7 @@
             "fieldPath": "status",
             "columnName": "status",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": false
           }
         ],
         "primaryKey": {
@@ -277,24 +119,14 @@
             "id"
           ]
         },
-        "indices": [
-          {
-            "name": "index_life_flows_area_id",
-            "unique": false,
-            "columnNames": [
-              "area_id"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_life_flows_area_id` ON `${TABLE_NAME}` (`area_id`)"
-          }
-        ],
+        "indices": [],
         "foreignKeys": [
           {
             "table": "life_areas",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "area_id"
+              "areaId"
             ],
             "referencedColumns": [
               "id"
@@ -304,18 +136,24 @@
       },
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `flow_id` TEXT, `title` TEXT NOT NULL, `subtitle` TEXT, `main_order` INTEGER, `source` TEXT, `task_owner` TEXT NOT NULL, `creation_date` TEXT, `internal_id` INTEGER, `life_area_placement` INTEGER, `flow_placement` INTEGER, `comment_count` INTEGER, `attachment_count` INTEGER, `life_area_id` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `externalId` TEXT, `internalId` INTEGER, `title` TEXT NOT NULL, `subtitle` TEXT, `mainOrder` INTEGER, `source` TEXT, `taskOwner` TEXT NOT NULL, `creationDate` TEXT NOT NULL, `payload` TEXT NOT NULL, `lifeAreaId` TEXT, `flowId` TEXT, `lifeAreaPlacement` INTEGER, `flowPlacement` INTEGER, `commentCount` INTEGER, `attachmentCount` INTEGER, `deletedAt` TEXT, PRIMARY KEY(`cardId`), FOREIGN KEY(`lifeAreaId`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`flowId`) REFERENCES `life_flows`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
-            "fieldPath": "id",
-            "columnName": "id",
+            "fieldPath": "cardId",
+            "columnName": "cardId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "flowId",
-            "columnName": "flow_id",
+            "fieldPath": "externalId",
+            "columnName": "externalId",
             "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "internalId",
+            "columnName": "internalId",
+            "affinity": "INTEGER",
             "notNull": false
           },
           {
@@ -332,7 +170,7 @@
           },
           {
             "fieldPath": "mainOrder",
-            "columnName": "main_order",
+            "columnName": "mainOrder",
             "affinity": "INTEGER",
             "notNull": false
           },
@@ -344,49 +182,61 @@
           },
           {
             "fieldPath": "taskOwner",
-            "columnName": "task_owner",
+            "columnName": "taskOwner",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "creationDate",
-            "columnName": "creation_date",
+            "columnName": "creationDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lifeAreaId",
+            "columnName": "lifeAreaId",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "internalId",
-            "columnName": "internal_id",
-            "affinity": "INTEGER",
+            "fieldPath": "flowId",
+            "columnName": "flowId",
+            "affinity": "TEXT",
             "notNull": false
           },
           {
             "fieldPath": "lifeAreaPlacement",
-            "columnName": "life_area_placement",
+            "columnName": "lifeAreaPlacement",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
             "fieldPath": "flowPlacement",
-            "columnName": "flow_placement",
+            "columnName": "flowPlacement",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
             "fieldPath": "commentCount",
-            "columnName": "comment_count",
+            "columnName": "commentCount",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
             "fieldPath": "attachmentCount",
-            "columnName": "attachment_count",
+            "columnName": "attachmentCount",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
-            "fieldPath": "lifeAreaId",
-            "columnName": "life_area_id",
+            "fieldPath": "deletedAt",
+            "columnName": "deletedAt",
             "affinity": "TEXT",
             "notNull": false
           }
@@ -394,157 +244,28 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
-      },
-      {
-        "tableName": "task_payloads",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` TEXT NOT NULL, `title` TEXT, `source` TEXT, `on_main_page` INTEGER, `deadline` TEXT, `life_area` TEXT, `life_area_id` TEXT, `subtitle` TEXT, `user_edit` INTEGER, `important` INTEGER, `message_id` TEXT, `full_message` TEXT, `description` TEXT, `priority` INTEGER, `user_change_assignee` INTEGER, `organization` TEXT, `short_message` TEXT, `external_id` TEXT, `related_assignment` TEXT, `mean_source` TEXT, `id` TEXT, PRIMARY KEY(`task_id`), FOREIGN KEY(`task_id`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "taskId",
-            "columnName": "task_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "title",
-            "columnName": "title",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "source",
-            "columnName": "source",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "onMainPage",
-            "columnName": "on_main_page",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "deadline",
-            "columnName": "deadline",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "lifeArea",
-            "columnName": "life_area",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "lifeAreaId",
-            "columnName": "life_area_id",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "subtitle",
-            "columnName": "subtitle",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "userEdit",
-            "columnName": "user_edit",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "important",
-            "columnName": "important",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "messageId",
-            "columnName": "message_id",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "fullMessage",
-            "columnName": "full_message",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "description",
-            "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "priority",
-            "columnName": "priority",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "userChangeAssignee",
-            "columnName": "user_change_assignee",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "organization",
-            "columnName": "organization",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "shortMessage",
-            "columnName": "short_message",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "externalId",
-            "columnName": "external_id",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "relatedAssignment",
-            "columnName": "related_assignment",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "meanSource",
-            "columnName": "mean_source",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": false
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "task_id"
+            "cardId"
           ]
         },
         "indices": [],
         "foreignKeys": [
           {
-            "table": "tasks",
-            "onDelete": "CASCADE",
+            "table": "life_areas",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
-              "task_id"
+              "lifeAreaId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "life_flows",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "flowId"
             ],
             "referencedColumns": [
               "id"
@@ -554,17 +275,17 @@
       },
       {
         "tableName": "task_assignees",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` TEXT NOT NULL, `employee_id` TEXT NOT NULL, `complete` INTEGER NOT NULL, PRIMARY KEY(`task_id`, `employee_id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`taskCardId` TEXT NOT NULL, `employeeId` TEXT NOT NULL, `complete` INTEGER NOT NULL, PRIMARY KEY(`taskCardId`, `employeeId`))",
         "fields": [
           {
-            "fieldPath": "taskId",
-            "columnName": "task_id",
+            "fieldPath": "taskCardId",
+            "columnName": "taskCardId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "employeeId",
-            "columnName": "employee_id",
+            "columnName": "employeeId",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -578,16 +299,16 @@
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "task_id",
-            "employee_id"
+            "taskCardId",
+            "employeeId"
           ]
         },
         "indices": [],
         "foreignKeys": []
       },
       {
-        "tableName": "task_comments",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `task_id` TEXT NOT NULL, `parent_comment_id` TEXT, `owner` TEXT, `text` TEXT NOT NULL, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`task_id`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "tableName": "checklist_tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `taskCardId` TEXT NOT NULL, `title` TEXT NOT NULL, `done` INTEGER NOT NULL, `placement` INTEGER NOT NULL, `responsibles` TEXT, `deadline` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`taskCardId`) REFERENCES `tasks`(`cardId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -596,14 +317,82 @@
             "notNull": true
           },
           {
-            "fieldPath": "taskId",
-            "columnName": "task_id",
+            "fieldPath": "taskCardId",
+            "columnName": "taskCardId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "done",
+            "columnName": "done",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "placement",
+            "columnName": "placement",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "responsibles",
+            "columnName": "responsibles",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deadline",
+            "columnName": "deadline",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": [
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "taskCardId"
+            ],
+            "referencedColumns": [
+              "cardId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "task_comments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `taskCardId` TEXT NOT NULL, `parentCommentId` TEXT, `owner` TEXT, `text` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`taskCardId`) REFERENCES `tasks`(`cardId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskCardId",
+            "columnName": "taskCardId",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "parentCommentId",
-            "columnName": "parent_comment_id",
+            "columnName": "parentCommentId",
             "affinity": "TEXT",
             "notNull": false
           },
@@ -621,13 +410,13 @@
           },
           {
             "fieldPath": "createdAt",
-            "columnName": "created_at",
+            "columnName": "createdAt",
             "affinity": "TEXT",
             "notNull": true
           },
           {
             "fieldPath": "updatedAt",
-            "columnName": "updated_at",
+            "columnName": "updatedAt",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -645,10 +434,10 @@
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "task_id"
+              "taskCardId"
             ],
             "referencedColumns": [
-              "id"
+              "cardId"
             ]
           }
         ]
@@ -657,7 +446,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '38c8eb134878170d225d38a24b1ad693')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '115710c16959ca3f260519296ee521ff')"
     ]
   }
 }

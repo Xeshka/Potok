@@ -113,7 +113,7 @@ fun LifeAreaEntity.toModel(): LifeArea {
         id = this.id,
         title = this.title,
         style = this.style,
-        tagsId = this.tagsId,
+        tagsId = this.tagsId?.toInt(),
         placement = this.placement,
         isDefault = this.isDefault,
         isTheme = this.isTheme,
