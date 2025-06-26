@@ -1,4 +1,4 @@
-//// TaskCommentRepository.kt
+package ru.kolesnik.potok.core.data.repository//// TaskCommentRepository.kt
 //package ru.kolesnik.potok.core.datasource.repository
 //
 //import ru.kolesnik.potok.core.database.dao.TaskCommentDao

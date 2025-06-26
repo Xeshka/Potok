@@ -1,4 +1,4 @@
-package ru.kolesnik.potok.core.datasource.repository
+package ru.kolesnik.potok.core.data.repository
 
 import ru.kolesnik.potok.core.data.repository.FullProjectRepository
 import ru.kolesnik.potok.core.data.util.toEntity

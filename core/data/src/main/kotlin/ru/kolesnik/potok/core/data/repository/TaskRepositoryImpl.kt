@@ -1,4 +1,4 @@
-package ru.kolesnik.potok.core.datasource.repository
+package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

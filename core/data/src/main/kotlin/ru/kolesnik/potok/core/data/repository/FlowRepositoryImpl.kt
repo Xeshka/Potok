@@ -1,4 +1,4 @@
-package ru.kolesnik.potok.core.datasource.repository
+package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -8,6 +8,7 @@ import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.database.dao.LifeFlowDao
 import ru.kolesnik.potok.core.model.LifeFlow
 import ru.kolesnik.potok.core.network.SyncFullDataSource
+import ru.kolesnik.potok.core.network.repository.FlowRepository
 import java.util.UUID
 import javax.inject.Inject
 

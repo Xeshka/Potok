@@ -1,4 +1,4 @@
-package ru.kolesnik.potok.core.datasource.repository
+package ru.kolesnik.potok.core.data.repository
 
 import ru.kolesnik.potok.core.database.AppDatabase
 import ru.kolesnik.potok.core.network.SyncFullDataSource
