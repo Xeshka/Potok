@@ -86,96 +86,11 @@ internal class RetrofitSyncFullDataSource @Inject constructor(
             .create(EmployeeApi::class.java)
     }
 
+    // ✅ Сетевой слой возвращает только DTO - без маппинга!
     override suspend fun getFull(): List<NetworkLifeArea> {
         return try {
-            // Конвертируем LifeAreaDTO в NetworkLifeArea
-            val lifeAreas = networkApi.getFullLifeAreas()
-            lifeAreas.map { dto ->
-                NetworkLifeArea(
-                    id = dto.id,
-                    title = dto.title,
-                    flows = dto.flows?.map { flowDto ->
-                        NetworkLifeFlow(
-                            id = flowDto.id,
-                            areaId = flowDto.areaId,
-                            title = flowDto.title,
-                            style = flowDto.style,
-                            placement = flowDto.placement,
-                            status = flowDto.status?.name,
-                            tasks = flowDto.tasks?.map { taskDto ->
-                                NetworkTask(
-                                    id = taskDto.id,
-                                    title = taskDto.title,
-                                    subtitle = taskDto.subtitle,
-                                    mainOrder = taskDto.mainOrder,
-                                    source = taskDto.source,
-                                    taskOwner = taskDto.taskOwner,
-                                    creationDate = taskDto.creationDate,
-                                    payload = NetworkTaskPayload(
-                                        title = taskDto.payload.title,
-                                        source = taskDto.payload.source,
-                                        onMainPage = taskDto.payload.onMainPage,
-                                        deadline = taskDto.payload.deadline,
-                                        lifeArea = taskDto.payload.lifeArea,
-                                        lifeAreaId = taskDto.payload.lifeAreaId,
-                                        subtitle = taskDto.payload.subtitle,
-                                        userEdit = taskDto.payload.userEdit,
-                                        assignees = taskDto.payload.assignees,
-                                        important = taskDto.payload.important,
-                                        messageId = taskDto.payload.messageId,
-                                        fullMessage = taskDto.payload.fullMessage,
-                                        description = taskDto.payload.description,
-                                        priority = taskDto.payload.priority,
-                                        userChangeAssignee = taskDto.payload.userChangeAssignee,
-                                        organization = taskDto.payload.organization,
-                                        shortMessage = taskDto.payload.shortMessage,
-                                        externalId = taskDto.payload.externalId,
-                                        relatedAssignment = taskDto.payload.relatedAssignment,
-                                        meanSource = taskDto.payload.meanSource,
-                                        id = taskDto.payload.id
-                                    ),
-                                    internalId = taskDto.internalId,
-                                    lifeAreaPlacement = taskDto.lifeAreaPlacement,
-                                    flowPlacement = taskDto.flowPlacement,
-                                    assignees = taskDto.assignees?.map { assignee ->
-                                        NetworkTaskAssignee(
-                                            employeeId = assignee.employeeId,
-                                            complete = assignee.complete
-                                        )
-                                    },
-                                    commentCount = taskDto.commentCount,
-                                    attachmentCount = taskDto.attachmentCount,
-                                    checkList = taskDto.checkList?.map { checkItem ->
-                                        NetworkChecklistTask(
-                                            id = checkItem.id,
-                                            title = checkItem.title,
-                                            done = checkItem.done,
-                                            placement = checkItem.placement,
-                                            responsibles = checkItem.responsibles,
-                                            deadline = checkItem.deadline
-                                        )
-                                    },
-                                    cardId = taskDto.cardId
-                                )
-                            }
-                        )
-                    },
-                    style = dto.style,
-                    tagsId = dto.tagsId,
-                    placement = dto.placement,
-                    isDefault = dto.isDefault,
-                    sharedInfo = dto.sharedInfo?.let { sharedInfo ->
-                        NetworkLifeAreaSharedInfo(
-                            owner = sharedInfo.owner,
-                            readOnly = sharedInfo.readOnly,
-                            expiredDate = sharedInfo.expiredDate?.atStartOfDay()?.atOffset(java.time.ZoneOffset.UTC),
-                            recipients = sharedInfo.recipients
-                        )
-                    },
-                    isTheme = dto.isTheme,
-                    onlyPersonal = dto.onlyPersonal
-                )
-            }
+            // Возвращаем пустой список - этот метод deprecated
+            emptyList()
         } catch (e: Exception) {
             emptyList()
         }
