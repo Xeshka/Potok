@@ -5,12 +5,13 @@ import ru.kolesnik.potok.core.model.Employee
 import ru.kolesnik.potok.core.network.api.SearchApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.network.datasource.impl.RetrofitSearchDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SearchRepositoryImpl @Inject constructor(
-    private val searchApi: SearchApi
+    private val searchApi: RetrofitSearchDataSource
 ) : SearchRepository {
 
     override suspend fun searchTasks(query: String): Result<List<Task>> {

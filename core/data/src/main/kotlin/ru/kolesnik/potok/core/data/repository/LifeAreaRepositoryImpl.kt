@@ -4,16 +4,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.LifeAreaDao
 import ru.kolesnik.potok.core.model.LifeArea
-import ru.kolesnik.potok.core.network.api.LifeAreaApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.network.datasource.impl.RetrofitLifeAreaDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LifeAreaRepositoryImpl @Inject constructor(
-    private val lifeAreaApi: LifeAreaApi,
+    private val lifeAreaApi: RetrofitLifeAreaDataSource,
     private val lifeAreaDao: LifeAreaDao
 ) : LifeAreaRepository {
 

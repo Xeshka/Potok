@@ -8,12 +8,13 @@ import ru.kolesnik.potok.core.network.api.LifeFlowApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.network.datasource.impl.RetrofitLifeFlowDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LifeFlowRepositoryImpl @Inject constructor(
-    private val lifeFlowApi: LifeFlowApi,
+    private val lifeFlowApi: RetrofitLifeFlowDataSource,
     private val lifeFlowDao: LifeFlowDao
 ) : LifeFlowRepository {
 

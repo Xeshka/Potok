@@ -8,13 +8,14 @@ import ru.kolesnik.potok.core.network.api.CommentApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.network.datasource.impl.RetrofitCommentDataSource
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CommentRepositoryImpl @Inject constructor(
-    private val commentApi: CommentApi,
+    private val commentApi: RetrofitCommentDataSource,
     private val taskCommentDao: TaskCommentDao
 ) : CommentRepository {
 

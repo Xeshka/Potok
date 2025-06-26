@@ -4,16 +4,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.ChecklistTaskDao
 import ru.kolesnik.potok.core.model.ChecklistTask
-import ru.kolesnik.potok.core.network.api.ChecklistApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.network.datasource.impl.RetrofitChecklistDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ChecklistRepositoryImpl @Inject constructor(
-    private val checklistApi: ChecklistApi,
+    private val checklistApi: RetrofitChecklistDataSource,
     private val checklistTaskDao: ChecklistTaskDao
 ) : ChecklistRepository {
 
