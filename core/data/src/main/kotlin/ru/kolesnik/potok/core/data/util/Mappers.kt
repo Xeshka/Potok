@@ -311,7 +311,7 @@ fun TaskAssigneeEntity.toModel(): TaskAssignee {
     )
 }
 
-// DTO -> Model mappers (добавляем недостающие методы toDomainModel)
+// DTO -> Domain Model mappers (НЕДОСТАЮЩИЕ МЕТОДЫ)
 fun LifeAreaDTO.toDomainModel(): LifeArea {
     return LifeArea(
         id = this.id,
