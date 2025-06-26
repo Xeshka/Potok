@@ -8,6 +8,7 @@ import ru.kolesnik.potok.core.network.api.LifeFlowApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.data.util.toDomainModel
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,10 +45,16 @@ class LifeFlowRepositoryImpl @Inject constructor(
                 title = name,
                 style = description
             )
-            val result = lifeFlowApi.createLifeFlow(java.util.UUID.fromString(lifeAreaId), request)
-            val entity = result.toEntity()
+            
+            // ✅ Получаем DTO из API
+            val resultDTO = lifeFlowApi.createLifeFlow(java.util.UUID.fromString(lifeAreaId), request)
+            
+            // ✅ Преобразуем DTO в Entity и сохраняем
+            val entity = resultDTO.toEntity()
             lifeFlowDao.insert(entity)
-            Result.Success(entity.toModel())
+            
+            // ✅ Возвращаем доменную модель
+            Result.Success(resultDTO.toDomainModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -59,10 +66,16 @@ class LifeFlowRepositoryImpl @Inject constructor(
                 title = name,
                 style = description
             )
-            val result = lifeFlowApi.updateLifeFlow(java.util.UUID.fromString(id), request)
-            val entity = result.toEntity()
+            
+            // ✅ Получаем DTO из API
+            val resultDTO = lifeFlowApi.updateLifeFlow(java.util.UUID.fromString(id), request)
+            
+            // ✅ Преобразуем DTO в Entity и обновляем
+            val entity = resultDTO.toEntity()
             lifeFlowDao.update(entity)
-            Result.Success(entity.toModel())
+            
+            // ✅ Возвращаем доменную модель
+            Result.Success(resultDTO.toDomainModel())
         } catch (e: Exception) {
             Result.Error(e)
         }

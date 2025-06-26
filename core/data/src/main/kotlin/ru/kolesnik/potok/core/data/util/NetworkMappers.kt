@@ -3,6 +3,8 @@ package ru.kolesnik.potok.core.data.util
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.model.potok.*
+import ru.kolesnik.potok.core.database.entitys.*
+import java.util.UUID
 
 /**
  * ✅ Маппинг Network DTO -> Domain Models
@@ -29,6 +31,27 @@ fun LifeAreaDTO.toDomainModel(): LifeArea {
     )
 }
 
+// ✅ НОВАЯ ФУНКЦИЯ: LifeAreaDTO -> Entity (прямое преобразование)
+fun LifeAreaDTO.toEntity(): LifeAreaEntity {
+    return LifeAreaEntity(
+        id = this.id,
+        title = this.title,
+        style = this.style,
+        tagsId = this.tagsId,
+        placement = this.placement,
+        isDefault = this.isDefault,
+        sharedInfo = this.sharedInfo?.let { sharedInfo ->
+            ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
+                areaId = this.id,
+                owner = sharedInfo.owner,
+                recipients = sharedInfo.recipients
+            )
+        },
+        isTheme = this.isTheme,
+        onlyPersonal = this.onlyPersonal
+    )
+}
+
 // LifeFlow mapping
 fun LifeFlowDTO.toDomainModel(): LifeFlow {
     return LifeFlow(
@@ -44,6 +67,18 @@ fun LifeFlowDTO.toDomainModel(): LifeFlow {
             ru.kolesnik.potok.core.network.model.api.FlowStatus.CUSTOM -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
             null -> ru.kolesnik.potok.core.model.FlowStatus.NEW
         }
+    )
+}
+
+// ✅ НОВАЯ ФУНКЦИЯ: LifeFlowDTO -> Entity (прямое преобразование)
+fun LifeFlowDTO.toEntity(): LifeFlowEntity {
+    return LifeFlowEntity(
+        id = this.id,
+        areaId = this.areaId,
+        title = this.title,
+        style = this.style,
+        placement = this.placement,
+        status = this.status
     )
 }
 

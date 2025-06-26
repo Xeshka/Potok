@@ -8,6 +8,7 @@ import ru.kolesnik.potok.core.network.api.LifeAreaApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
+import ru.kolesnik.potok.core.data.util.toDomainModel
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,9 +26,13 @@ class LifeAreaRepositoryImpl @Inject constructor(
 
     override suspend fun syncLifeAreas(): Result<Unit> {
         return try {
-            val lifeAreas = lifeAreaApi.getLifeAreas()
-            val entities = lifeAreas.map { it.toEntity() }
+            // ✅ Получаем DTO из API
+            val lifeAreaDTOs = lifeAreaApi.getLifeAreas()
+            
+            // ✅ Преобразуем DTO напрямую в Entity (оптимизация)
+            val entities = lifeAreaDTOs.map { it.toEntity() }
             lifeAreaDao.insertAll(entities)
+            
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -42,10 +47,16 @@ class LifeAreaRepositoryImpl @Inject constructor(
                 isTheme = false,
                 onlyPersonal = true
             )
-            val result = lifeAreaApi.createLifeArea(request)
-            val entity = result.toEntity()
+            
+            // ✅ Получаем DTO из API
+            val resultDTO = lifeAreaApi.createLifeArea(request)
+            
+            // ✅ Преобразуем DTO в Entity и сохраняем
+            val entity = resultDTO.toEntity()
             lifeAreaDao.insert(entity)
-            Result.Success(entity.toModel())
+            
+            // ✅ Возвращаем доменную модель
+            Result.Success(resultDTO.toDomainModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -59,10 +70,16 @@ class LifeAreaRepositoryImpl @Inject constructor(
                 isTheme = false,
                 onlyPersonal = true
             )
-            val result = lifeAreaApi.updateLifeArea(java.util.UUID.fromString(id), request)
-            val entity = result.toEntity()
+            
+            // ✅ Получаем DTO из API
+            val resultDTO = lifeAreaApi.updateLifeArea(java.util.UUID.fromString(id), request)
+            
+            // ✅ Преобразуем DTO в Entity и обновляем
+            val entity = resultDTO.toEntity()
             lifeAreaDao.update(entity)
-            Result.Success(entity.toModel())
+            
+            // ✅ Возвращаем доменную модель
+            Result.Success(resultDTO.toDomainModel())
         } catch (e: Exception) {
             Result.Error(e)
         }
