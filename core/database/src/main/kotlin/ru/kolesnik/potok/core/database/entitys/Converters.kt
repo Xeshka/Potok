@@ -13,7 +13,11 @@ import java.time.OffsetDateTime
 import java.util.*
 
 class Converters {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { 
+        ignoreUnknownKeys = true 
+        isLenient = true
+        encodeDefaults = true
+    }
 
     // UUID
     @TypeConverter
@@ -41,26 +45,50 @@ class Converters {
     fun fromTaskPayload(value: TaskPayload?): String? = value?.let { json.encodeToString(value) }
 
     @TypeConverter
-    fun toTaskPayload(value: String?): TaskPayload? = value?.let { json.decodeFromString<TaskPayload>(it) }
+    fun toTaskPayload(value: String?): TaskPayload? = value?.let { 
+        try {
+            json.decodeFromString<TaskPayload>(it)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // FlowStatus enum
     @TypeConverter
     fun fromFlowStatus(value: FlowStatus?): String? = value?.name
 
     @TypeConverter
-    fun toFlowStatus(value: String?): FlowStatus? = value?.let { FlowStatus.valueOf(it) }
+    fun toFlowStatus(value: String?): FlowStatus? = value?.let { 
+        try {
+            FlowStatus.valueOf(it)
+        } catch (e: Exception) {
+            FlowStatus.NEW
+        }
+    }
 
     // LifeAreaSharedInfo
     @TypeConverter
     fun fromLifeAreaSharedInfo(value: LifeAreaSharedInfo?): String? = value?.let { json.encodeToString(value) }
 
     @TypeConverter
-    fun toLifeAreaSharedInfo(value: String?): LifeAreaSharedInfo? = value?.let { json.decodeFromString<LifeAreaSharedInfo>(it) }
+    fun toLifeAreaSharedInfo(value: String?): LifeAreaSharedInfo? = value?.let { 
+        try {
+            json.decodeFromString<LifeAreaSharedInfo>(it)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // List<String>
     @TypeConverter
     fun fromStringList(value: List<String>?): String? = value?.let { json.encodeToString(it) }
 
     @TypeConverter
-    fun toStringList(value: String?): List<String>? = value?.let { json.decodeFromString<List<String>>(it) }
+    fun toStringList(value: String?): List<String>? = value?.let { 
+        try {
+            json.decodeFromString<List<String>>(it)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 }

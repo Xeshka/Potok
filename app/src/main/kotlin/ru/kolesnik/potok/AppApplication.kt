@@ -1,19 +1,3 @@
-/*
- * Copyright 2022 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package ru.kolesnik.potok
 
 import android.app.Application
@@ -21,23 +5,33 @@ import android.content.pm.ApplicationInfo
 import android.os.StrictMode
 import android.os.StrictMode.ThreadPolicy.Builder
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import ru.kolesnik.potok.core.datasource.repository.SyncRepository
+import javax.inject.Inject
 
 @HiltAndroidApp
-class AppApplication : Application()/*, ImageLoaderFactory*/ {
-    //@Inject
-    //lateinit var imageLoader: dagger.Lazy<ImageLoader>
+class AppApplication : Application() {
+    @Inject
+    lateinit var syncRepository: SyncRepository
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
 
-        //setStrictModePolicy()
-
-        // Initialize Sync; the system responsible for keeping data in the app up to date.
-        //Sync.initialize(context = this)
-        //profileVerifierLogger()
+        // Инициализируем синхронизацию данных при запуске приложения
+        applicationScope.launch {
+            try {
+                syncRepository.sync()
+            } catch (e: Exception) {
+                // Обработка ошибок синхронизации
+                e.printStackTrace()
+            }
+        }
     }
-
-    //override fun newImageLoader(): ImageLoader = imageLoader.get()
 
     /**
      * Return true if the application is debuggable.
