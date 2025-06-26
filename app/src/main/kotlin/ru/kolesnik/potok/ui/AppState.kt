@@ -1,34 +1,54 @@
 package ru.kolesnik.potok.ui
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
+import kotlinx.coroutines.CoroutineScope
+import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute
+import ru.kolesnik.potok.feature.task.navigation.navigateToTask
 
 @Composable
 fun rememberAppState(
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     navController: NavHostController = rememberNavController(),
+    coroutineScope: CoroutineScope = rememberCoroutineScope(),
 ): AppState {
     return remember(
+        snackbarHostState,
         navController,
+        coroutineScope,
     ) {
         AppState(
+            snackbarHostState = snackbarHostState,
             navController = navController,
+            coroutineScope = coroutineScope,
         )
     }
 }
 
 @Stable
 class AppState(
+    val snackbarHostState: SnackbarHostState,
     val navController: NavHostController,
+    coroutineScope: CoroutineScope,
 ) {
     val currentDestination: NavDestination?
         @Composable get() = navController
             .currentBackStackEntryAsState().value?.destination
+
+    val currentTopLevelDestination: TopLevelDestination?
+        @Composable get() = when (currentDestination?.route) {
+            LifeAreaRoute::class.qualifiedName -> TopLevelDestination.LIFE_AREAS
+            else -> null
+        }
 
     /**
      * UI logic for navigating to a top level destination in the app. Top level destinations have
@@ -38,7 +58,7 @@ class AppState(
      * @param topLevelDestination: The destination the app needs to navigate to.
      */
     fun navigateToTopLevelDestination(topLevelDestination: TopLevelDestination) {
-        navController.navigate(topLevelDestination.route) {
+        val topLevelNavOptions = navOptions {
             // Pop up to the start destination of the graph to
             // avoid building up a large stack of destinations
             // on the back stack as users select items
@@ -51,10 +71,14 @@ class AppState(
             // Restore state when reselecting a previously selected item
             restoreState = true
         }
+
+        when (topLevelDestination) {
+            TopLevelDestination.LIFE_AREAS -> navController.navigate(LifeAreaRoute, topLevelNavOptions)
+        }
     }
 
-    fun onBackClick() {
-        navController.popBackStack()
+    fun navigateToTask(taskId: String) {
+        navController.navigateToTask(taskId)
     }
 }
 
@@ -62,7 +86,9 @@ class AppState(
  * Top level destinations to be used in the BottomBar, NavRail, and NavDrawer
  */
 enum class TopLevelDestination(
-    val route: String,
+    val titleTextId: String,
 ) {
-    LIFE_AREA("life_area"),
+    LIFE_AREAS(
+        titleTextId = "Области жизни",
+    ),
 }

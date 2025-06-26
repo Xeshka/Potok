@@ -16,7 +16,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -62,9 +61,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Turn off the decor fitting system windows, which allows us to handle insets,
-        // including IME animations, and go edge-to-edge
-        // This also sets up the initial system bar style based on the platform theme
         enableEdgeToEdge()
 
         setContent {
@@ -74,18 +70,20 @@ class MainActivity : ComponentActivity() {
                 darkTheme = shouldUseDarkTheme(uiState),
                 disableDynamicTheming = shouldDisableDynamicTheming(uiState),
             ) {
-                androidx.compose.runtime.CompositionLocalProvider(
-                    LocalAnalyticsHelper provides analyticsHelper,
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        AppNavHost(
-                            navController = appState.navController,
-                            onBackClick = appState::onBackClick,
-                        )
-                    }
+                    AppNavHost(
+                        appState = appState,
+                        onShowSnackbar = { message, action ->
+                            appState.snackbarHostState.showSnackbar(
+                                message = message,
+                                actionLabel = action,
+                            )
+                        },
+                        modifier = Modifier,
+                    )
                 }
             }
         }
