@@ -33,45 +33,69 @@ import ru.kolesnik.potok.core.network.ssl.AppSSLFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Singleton
 
 private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 
 class AuthAuthenticator(
-    private val apiProvider: dagger.Lazy<AuthApi>
+    private val apiProvider: dagger.Lazy<AuthApi>,
+    private val cookieManager: CookieManager
 ) : Authenticator {
-    private var attemptCount = 0
-
+    private val isAuthenticating = AtomicBoolean(false)
+    
     override fun authenticate(route: Route?, response: Response): Request? {
-        when (response.code) {
-            401, 403 -> {
-                if (attemptCount >= 3) {
-                    Log.e("Auth", "Too many auth attempts")
-                    return null
-                }
-                attemptCount++
-                try {
-                    runBlocking {
-                        apiProvider.get().auth()
-                    }
-                    return response.request.newBuilder()
-                        .removeHeader("Cookie")
-                        .build()
-                } catch (e: Exception) {
-                    Log.e("Auth", "Authentication failed", e)
-                    return null
-                }
-            }
-
-            502, 503 -> {
-                throw Exception("AUTH_SERVER_OFF: ${response.code}")
-            }
-
-            else -> {
-                attemptCount = 0
-                throw Exception("ERROR: ${response.code}")
-            }
+        Log.d("AuthAuthenticator", "Authentication needed for: ${response.request.url}")
+        
+        // Проверяем, что это действительно 401 ошибка
+        if (response.code != 401) {
+            Log.d("AuthAuthenticator", "Not a 401 error, code: ${response.code}")
+            return null
         }
+        
+        // Предотвращаем множественные одновременные попытки авторизации
+        if (isAuthenticating.getAndSet(true)) {
+            Log.d("AuthAuthenticator", "Authentication already in progress")
+            return null
+        }
+        
+        return try {
+            Log.d("AuthAuthenticator", "Starting authentication...")
+            
+            // Очищаем старые куки
+            cookieManager.cookieStore.removeAll()
+            Log.d("AuthAuthenticator", "Cleared old cookies")
+            
+            // Выполняем авторизационный запрос
+            runBlocking {
+                apiProvider.get().auth()
+            }
+            Log.d("AuthAuthenticator", "Authentication successful")
+            
+            // Возвращаем оригинальный запрос для повтора
+            response.request.newBuilder().build()
+            
+        } catch (e: Exception) {
+            Log.e("AuthAuthenticator", "Authentication failed", e)
+            null
+        } finally {
+            isAuthenticating.set(false)
+        }
+    }
+}
+
+class AuthInterceptor(
+    private val cookieManager: CookieManager
+) : Interceptor {
+    
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        
+        // Логируем куки для отладки
+        val cookies = cookieManager.cookieStore.get(request.url.toUri())
+        Log.d("AuthInterceptor", "Request to ${request.url} with ${cookies.size} cookies")
+        
+        return chain.proceed(request)
     }
 }
 
@@ -81,9 +105,15 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideCookieManager(): CookieManager =
+        CookieManager(InMemoryCookieStore("potok"), CookiePolicy.ACCEPT_ALL)
+
+    @Provides
+    @Singleton
     fun provideAuthenticator(
-        apiProvider: dagger.Lazy<AuthApi>
-    ): Authenticator = AuthAuthenticator(apiProvider)
+        apiProvider: dagger.Lazy<AuthApi>,
+        cookieManager: CookieManager
+    ): Authenticator = AuthAuthenticator(apiProvider, cookieManager)
 
     @Provides
     @Singleton
@@ -96,7 +126,7 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthApi(
+    fun provideRetrofitSyncFullNetworkApi(
         callFactory: Call.Factory,
         networkJson: Json
     ): AuthApi {
@@ -110,24 +140,6 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(
-        callFactory: Call.Factory,
-        networkJson: Json
-    ): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(RANDM_BASE_URL)
-            .callFactory(callFactory)
-            .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideCookieManager(): CookieManager =
-        CookieManager(InMemoryCookieStore("cumulo"), CookiePolicy.ACCEPT_ALL)
-
-    @Provides
-    @Singleton
     fun okHttpCallFactory(
         appSSLFactory: AppSSLFactory,
         cookieManager: CookieManager,
@@ -136,11 +148,12 @@ internal object NetworkModule {
         val sslFactory = appSSLFactory.getSSLFactory()
         OkHttpClient.Builder()
             .authenticator(authenticator)
+            .cookieJar(JavaNetCookieJar(cookieManager))
+            .addInterceptor(AuthInterceptor(cookieManager))
             .retryOnConnectionFailure(true)
             .readTimeout(Duration.ofMinutes(1))
             .connectTimeout(Duration.ofMinutes(1))
             .writeTimeout(Duration.ofMinutes(1))
-            .cookieJar(JavaNetCookieJar(cookieManager))
             .sslSocketFactory(sslFactory.sslSocketFactory, sslFactory.trustManager.get())
             .addInterceptor(PerformanceInterceptor())
             .build()
@@ -345,4 +358,5 @@ internal object NetworkModule {
         private val ANSI_YELLOW = "\u001B[33m"
         private val ANSI_BLUE = "\u001B[34m"
     }
+
 }

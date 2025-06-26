@@ -20,6 +20,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
     companion object {
         private const val CLEANUP_INTERVAL = 60 * 1000L // 1 минута
+        private const val TAG = "InMemoryCookieStore"
     }
 
     private fun checkCleanup() {
@@ -47,6 +48,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         try {
             val result = uriIndex.isNotEmpty()
             uriIndex.clear()
+            Log.d(TAG, "[$name] Removed all cookies")
             return result
         } finally {
             lock.unlock()
@@ -55,18 +57,12 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
     override fun add(uri: URI?, cookie: HttpCookie?) {
         if (cookie == null) {
-            Log.i(
-                javaClass.simpleName,
-                "tried to add null cookie in cookie store named $name. Doing nothing."
-            )
+            Log.i(TAG, "[$name] tried to add null cookie. Doing nothing.")
             return
         }
 
         if (uri == null) {
-            Log.i(
-                javaClass.simpleName,
-                "tried to add null URI in cookie store named $name. Doing nothing."
-            )
+            Log.i(TAG, "[$name] tried to add null URI. Doing nothing.")
             return
         }
 
@@ -76,6 +72,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
             addIndex(getEffectiveURI(uri), cookie)
             // Сбрасываем кэш при добавлении новых кук
             lastUri = null
+            Log.d(TAG, "[$name] Added cookie: ${cookie.name}=${cookie.value} for ${uri.host}")
         } finally {
             lock.unlock()
         }
@@ -97,6 +94,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
                     }
                 }
             }
+            Log.d(TAG, "[$name] Retrieved ${rt.size} cookies")
             return Collections.unmodifiableList(rt)
         } finally {
             lock.unlock()
@@ -116,18 +114,12 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
     override fun remove(uri: URI?, cookie: HttpCookie?): Boolean {
         if (cookie == null) {
-            Log.i(
-                javaClass.simpleName,
-                "tried to remove null cookie from cookie store named $name. Doing nothing."
-            )
+            Log.i(TAG, "[$name] tried to remove null cookie. Doing nothing.")
             return true
         }
 
         if (uri == null) {
-            Log.i(
-                javaClass.simpleName,
-                "tried to remove null URI from cookie store named $name. Doing nothing."
-            )
+            Log.i(TAG, "[$name] tried to remove null URI. Doing nothing.")
             return true
         }
 
@@ -139,7 +131,10 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
             } else {
                 val cookies = uriIndex[lintedURI]
                 val removed = cookies?.remove(cookie) ?: false
-                if (removed) lastUri = null  // Сбрасываем кэш при изменении
+                if (removed) {
+                    lastUri = null  // Сбрасываем кэш при изменении
+                    Log.d(TAG, "[$name] Removed cookie: ${cookie.name} for ${uri.host}")
+                }
                 return removed
             }
         } finally {
@@ -149,10 +144,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
 
     override fun get(uri: URI?): List<HttpCookie> {
         if (uri == null) {
-            Log.i(
-                javaClass.simpleName,
-                "getting cookies from cookie store named $name for null URI results in empty list"
-            )
+            Log.i(TAG, "[$name] getting cookies for null URI results in empty list")
             return emptyList()
         }
 
@@ -175,6 +167,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
             lastUri = effectiveUri
             lastCookies = cookies
 
+            Log.d(TAG, "[$name] Retrieved ${cookies.size} cookies for ${uri.host}")
             return cookies
         } finally {
             lock.unlock()
