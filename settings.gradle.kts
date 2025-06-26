@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CumuloFlow"
+rootProject.name = "Potok"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 

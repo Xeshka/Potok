@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import jakarta.inject.Inject
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Authenticator
@@ -36,44 +37,70 @@ import ru.kolesnik.potok.core.network.ssl.AppSSLFactory
 import java.net.CookieManager
 import java.net.CookiePolicy
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Singleton
 
-private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
+private const val BASE_URL = BuildConfig.BACKEND_URL
 
-class AuthAuthenticator(
-    private val authDataSource: dagger.Lazy<AuthDataSource> // Изменили на DataSource
+class AuthAuthenticator @Inject constructor(
+    private val authDataSource: dagger.Lazy<AuthDataSource>
 ) : Authenticator {
-    private var attemptCount = 0
+    private val refreshing = AtomicBoolean(false)
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        when (response.code) {
-            401, 403 -> {
-                if (attemptCount >= 3) {
-                    Log.e("Auth", "Too many auth attempts")
-                    return null
-                }
-                attemptCount++
-                try {
-                    runBlocking {
-                        authDataSource.get().auth() // Используем DataSource
-                    }
-                    return response.request.newBuilder()
-                        .removeHeader("Cookie")
-                        .build()
-                } catch (e: Exception) {
-                    Log.e("Auth", "Authentication failed", e)
-                    return null
-                }
-            }
+        if (response.request.url.toString().contains("/auth")) {
+            return null
+        }
 
-            502, 503 -> {
-                throw Exception("AUTH_SERVER_OFF: ${response.code}")
-            }
+        if (refreshing.compareAndSet(false, true)) {
+            return try {
+                Log.d("Auth", "Refreshing authentication...")
 
-            else -> {
-                attemptCount = 0
-                throw Exception("ERROR: ${response.code}")
+                runBlocking {
+                    authDataSource.get().auth()
+                }
+
+                // После аутентификации создаем полностью новый запрос
+                response.request.newBuilder()
+                    .removeHeader("Cookie") // Важно: очищаем старые куки
+                    .removeHeader("Authorization")
+                    .build()
+            } catch (e: Exception) {
+                Log.e("Auth", "Refresh failed", e)
+                null
+            } finally {
+                refreshing.set(false)
             }
+        }
+        return null
+    }
+}
+
+class RetrofitAuthDataSource @Inject constructor(
+    private val api: AuthApi
+) : AuthDataSource {
+    override suspend fun auth(): Boolean {
+        return try {
+            val response = api.auth()
+            if (response.isSuccessful) {
+                Log.d("Auth", "Authentication successful")
+
+                // Проверяем наличие кук в ответе
+                val cookies = response.headers()["Set-Cookie"]
+                if (cookies.isNullOrEmpty()) {
+                    Log.w("Auth", "No cookies in auth response")
+                } else {
+                    Log.d("Auth", "Received cookies: $cookies")
+                }
+
+                true
+            } else {
+                Log.e("Auth", "Authentication failed: ${response.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("Auth", "Authentication error", e)
+            false
         }
     }
 }
@@ -81,12 +108,6 @@ class AuthAuthenticator(
 @Module
 @InstallIn(SingletonComponent::class)
 internal object NetworkModule {
-
-    //@Provides
-    //@Singleton
-    //fun provideAuthenticator(
-    //    apiProvider: dagger.Lazy<AuthApi>
-    //): Authenticator = AuthAuthenticator(apiProvider)
 
     @Provides
     @Singleton
@@ -102,19 +123,8 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthDataSource(api: AuthApi): AuthDataSource =
-        RetrofitAuthDataSource(api)
-
-    @Provides
-    @Singleton
-    fun provideAuthApi(retrofit: Retrofit): AuthApi =
-        retrofit.create(AuthApi::class.java)
-
-
-    @Provides
-    @Singleton
     fun provideCookieManager(): CookieManager =
-        CookieManager(InMemoryCookieStore("cumulo"), CookiePolicy.ACCEPT_ALL)
+        CookieManager(InMemoryCookieStore("app_cookies"), CookiePolicy.ACCEPT_ALL)
 
     @Provides
     @Singleton
@@ -123,7 +133,7 @@ internal object NetworkModule {
         networkJson: Json
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(RANDM_BASE_URL)
+            .baseUrl(BASE_URL)
             .callFactory(callFactory)
             .addConverterFactory(networkJson.asConverterFactory("application/json".toMediaType()))
             .build()
@@ -135,9 +145,9 @@ internal object NetworkModule {
         appSSLFactory: AppSSLFactory,
         cookieManager: CookieManager,
         authenticator: Authenticator
-    ): Call.Factory = trace("NiaOkHttpClient") {
+    ): Call.Factory {
         val sslFactory = appSSLFactory.getSSLFactory()
-        OkHttpClient.Builder()
+        return OkHttpClient.Builder()
             .authenticator(authenticator)
             .retryOnConnectionFailure(true)
             .readTimeout(Duration.ofMinutes(1))
@@ -145,215 +155,58 @@ internal object NetworkModule {
             .writeTimeout(Duration.ofMinutes(1))
             .cookieJar(JavaNetCookieJar(cookieManager))
             .sslSocketFactory(sslFactory.sslSocketFactory, sslFactory.trustManager.get())
-            .addInterceptor(PerformanceInterceptor())
+            .addInterceptor(LoggingInterceptor())
             .build()
     }
 
-    // Обновляем провайдер для Authenticator
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi =
+        retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthDataSource(api: AuthApi): AuthDataSource =
+        RetrofitAuthDataSource(api)
+
     @Provides
     @Singleton
     fun provideAuthenticator(
-        authDataSource: dagger.Lazy<AuthDataSource> // Изменили на DataSource
+        authDataSource: dagger.Lazy<AuthDataSource>
     ): Authenticator = AuthAuthenticator(authDataSource)
 
-    private class PerformanceInterceptor : Interceptor {
-        companion object {
-            var LOG_HEADERS = false
-            var LOG_BODY_META = false
-            var LOG_BODY_CONTENT = false
-            const val MAX_BODY_LOG_LENGTH = 2048
-        }
 
+    // Логгирующий интерцептор
+    private class LoggingInterceptor : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
             val request = chain.request()
-            val startTime = System.nanoTime()
+            logRequest(request)
 
-            logBasicRequestInfo(request)
-            if (LOG_HEADERS) logRequestDetails(request)
-
-            try {
-                val response = chain.proceed(request)
-                val elapsedTime = (System.nanoTime() - startTime) / 1_000_000.0
-
-                logBasicResponseInfo(request, response, elapsedTime)
-                if (LOG_HEADERS) logResponseDetails(response)
-
-                return response
+            val response = try {
+                chain.proceed(request)
             } catch (e: Exception) {
-                val elapsedTime = (System.nanoTime() - startTime) / 1_000_000.0
-                Log.e("Network", "${request.method} ${request.url} failed in ${"%.2f".format(elapsedTime)}ms", e)
+                logFailure(request, e)
                 throw e
             }
+
+            return logResponse(response)
         }
 
-        private fun logBasicRequestInfo(request: Request) {
+        private fun logRequest(request: Request) {
             Log.d("Network", "--> ${request.method} ${request.url}")
+            Log.d("Network", "Headers: ${request.headers}")
+            Log.d("Network", "Cookies: ${request.header("Cookie")}")
         }
 
-        private fun logBasicResponseInfo(request: Request, response: Response, elapsedMs: Double) {
-            val code = response.code
-            val message = response.message
-            val color = when {
-                code >= 500 -> ANSI_RED    // Server errors
-                code >= 400 -> ANSI_YELLOW  // Client errors
-                code >= 300 -> ANSI_BLUE    // Redirects
-                else -> ANSI_GREEN          // Success
-            }
-
-            Log.d("Network", "<-- $color$code $message${ANSI_RESET} ${request.url} (${"%.2f".format(elapsedMs)}ms)")
+        private fun logResponse(response: Response): Response {
+            val duration = response.receivedResponseAtMillis - response.sentRequestAtMillis
+            Log.d("Network", "<-- ${response.code} ${response.message} (${duration}ms)")
+            Log.d("Network", "Headers: ${response.headers}")
+            return response
         }
 
-        private fun logResponseDetails(response: Response) {
-            try {
-                val headers = response.headers
-                    .joinToString("\n    ") { "${it.first}: ${redactSensitive(it.first, it.second)}" }
-                Log.d("Network", "Response Headers:\n    $headers")
-
-                if (LOG_BODY_META) {
-                    response.body?.let { body ->
-                        val contentType = body.contentType()?.toString() ?: "unknown"
-                        val size = body.contentLength().takeIf { it != -1L }?.let { "$it bytes" } ?: "unknown size"
-                        Log.d("Network", "Response Body: $contentType ($size)")
-
-                        if (LOG_BODY_CONTENT && isTextContentType(body.contentType())) {
-                            // Исправление: правильный способ получить тело ответа
-                            val content = getResponseBodyContent(body)
-                            Log.d("Network", "Response Body Content:\n${content.prettyPrintIfJson()}")
-                        }
-                    } ?: Log.d("Network", "Response Body: none")
-                }
-            } catch (e: Exception) {
-                Log.e("Network", "Failed to log response details", e)
-            }
+        private fun logFailure(request: Request, e: Exception) {
+            Log.e("Network", "${request.method} ${request.url} failed: ${e.message}")
         }
-
-        private fun getResponseBodyContent(body: ResponseBody): String {
-            return try {
-                // Создаем копию тела для чтения
-                val source = body.source()
-                source.request(Long.MAX_VALUE)
-                val buffer = source.buffer
-                val content = buffer.clone().readUtf8()
-
-                // Ограничиваем длину
-                if (content.length > MAX_BODY_LOG_LENGTH) {
-                    content.substring(0, MAX_BODY_LOG_LENGTH) + "... [truncated]"
-                } else {
-                    content
-                }
-            } catch (e: Exception) {
-                "Failed to read response body: ${e.message}"
-            }
-        }
-
-        private fun getRequestBodyContent(request: Request): String {
-            return try {
-                // Копируем тело запроса
-                val copy = request.newBuilder().build()
-                val buffer = Buffer()
-                copy.body?.writeTo(buffer)
-                val content = buffer.readUtf8()
-
-                // Ограничиваем длину
-                if (content.length > MAX_BODY_LOG_LENGTH) {
-                    content.substring(0, MAX_BODY_LOG_LENGTH) + "... [truncated]"
-                } else {
-                    content
-                }
-            } catch (e: Exception) {
-                "Failed to read request body: ${e.message}"
-            }
-        }
-
-        private fun logRequestDetails(request: Request) {
-            try {
-                val headers = request.headers
-                    .joinToString("\n    ") { "${it.first}: ${redactSensitive(it.first, it.second)}" }
-                Log.d("Network", "Request Headers:\n    $headers")
-
-                if (LOG_BODY_META) {
-                    request.body?.let { body ->
-                        val contentType = body.contentType()?.toString() ?: "unknown"
-                        val size = body.contentLength().takeIf { it != -1L }?.let { "$it bytes" } ?: "unknown size"
-                        Log.d("Network", "Request Body: $contentType ($size)")
-
-                        if (LOG_BODY_CONTENT && isTextContentType(body.contentType())) {
-                            val content = getRequestBodyContent(request)
-                            Log.d("Network", "Request Body Content:\n${content.prettyPrintIfJson()}")
-                        }
-                    } ?: Log.d("Network", "Request Body: none")
-                }
-            } catch (e: Exception) {
-                Log.e("Network", "Failed to log request details", e)
-            }
-        }
-
-        private fun redactSensitive(headerName: String, value: String): String {
-            return when {
-                headerName.equals("Authorization", ignoreCase = true) ->
-                    if (value.startsWith("Bearer ")) "Bearer [REDACTED]" else "[REDACTED]"
-
-                headerName.equals("Cookie", ignoreCase = true) ->
-                    value.split(";")
-                        .joinToString("; ") {
-                            if (it.contains("=")) {
-                                val parts = it.split("=", limit = 2)
-                                "${parts[0]}=[${parts[1].take(2)}...]"
-                            } else {
-                                it
-                            }
-                        }
-
-                else -> value
-            }
-        }
-
-        private fun isTextContentType(contentType: MediaType?): Boolean {
-            if (contentType == null) return false
-            val type = contentType.type
-            val subtype = contentType.subtype
-            return type == "text" ||
-                    subtype.contains("json") ||
-                    subtype.contains("xml") ||
-                    subtype.contains("html") ||
-                    subtype.contains("form")
-        }
-
-        private fun peekRequestBody(request: Request): String? {
-            return try {
-                val copy = request.newBuilder().build()
-                val buffer = Buffer()
-                copy.body?.writeTo(buffer)
-                buffer.readUtf8()
-            } catch (e: Exception) {
-                null
-            }
-        }
-
-        private fun String.prettyPrintIfJson(): String {
-            return if (contains(Regex("^\\s*[{\\[]"))) {
-                try {
-                    val json = JSONObject(this)
-                    json.toString(2)
-                } catch (e: JSONException) {
-                    try {
-                        val json = JSONArray(this)
-                        json.toString(2)
-                    } catch (e: JSONException) {
-                        this
-                    }
-                }
-            } else {
-                this
-            }
-        }
-
-        // ANSI цвета для терминала
-        private val ANSI_RESET = "\u001B[0m"
-        private val ANSI_RED = "\u001B[31m"
-        private val ANSI_GREEN = "\u001B[32m"
-        private val ANSI_YELLOW = "\u001B[33m"
-        private val ANSI_BLUE = "\u001B[34m"
     }
-
 }

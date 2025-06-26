@@ -6,16 +6,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
-import ru.kolesnik.potok.core.network.BuildConfig
-import ru.kolesnik.potok.core.network.datasource.impl.SyncFullDataSource
 import ru.kolesnik.potok.core.network.api.*
 import ru.kolesnik.potok.core.network.datasource.*
 import ru.kolesnik.potok.core.network.datasource.impl.*
 import ru.kolesnik.potok.core.network.datasource.impl.RetrofitSyncFullDataSource
-
 import javax.inject.Singleton
-
-private const val RANDM_BASE_URL = BuildConfig.BACKEND_URL
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -49,7 +44,7 @@ internal interface FlavoredNetworkModule {
     fun bindSearchDataSource(impl: RetrofitSearchDataSource): SearchDataSource
 
     companion object {
-        // API providers
+        // Провайдеры для всех API интерфейсов
         @Provides
         @Singleton
         fun provideAddressbookApi(retrofit: Retrofit): AddressbookApi =
