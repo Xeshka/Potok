@@ -7,6 +7,6 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-    // ✅ Убираем дублирующую привязку AnalyticsHelper
-    // Она уже есть в AnalyticsModule
+    // ✅ Убираем дублирующий провайдер AnalyticsHelper
+    // Он уже предоставляется в AnalyticsModule
 }

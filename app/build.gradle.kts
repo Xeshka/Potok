@@ -1,10 +1,10 @@
 plugins {
     alias(libs.plugins.app.android.application)
     alias(libs.plugins.app.android.application.compose)
-    alias(libs.plugins.app.android.application.firebase)
     alias(libs.plugins.app.android.application.flavors)
     alias(libs.plugins.app.android.application.jacoco)
     alias(libs.plugins.app.hilt)
+    alias(libs.plugins.app.android.application.firebase)
     alias(libs.plugins.baselineprofile)
     alias(libs.plugins.roborazzi)
 }
@@ -15,8 +15,9 @@ android {
     defaultConfig {
         applicationId = "ru.kolesnik.potok"
         versionCode = 8
-        versionName = "0.1.2" // Updated version
+        versionName = "0.1.2" // X.Y.Z; X = Major, Y = minor, Z = Patch level
 
+        // Custom test runner to set up Hilt dependency injection
         testInstrumentationRunner = "ru.kolesnik.potok.core.testing.AppTestRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -26,7 +27,6 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            isDebuggable = true
         }
         release {
             isMinifyEnabled = true
@@ -60,9 +60,8 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
-    implementation(projects.core.ui)
     implementation(projects.core.model)
-    implementation(projects.core.notifications)
+    implementation(projects.core.ui)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3.adaptive)
@@ -74,7 +73,6 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
-    implementation(libs.androidx.lifecycle.viewModelCompose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.tracing.ktx)
@@ -88,20 +86,18 @@ dependencies {
 
     kspTest(libs.hilt.compiler)
 
-    testImplementation(libs.androidx.navigation.testing)
-    testImplementation(libs.androidx.compose.ui.test)
-    testImplementation(libs.hilt.android.testing)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     testDemoImplementation(libs.robolectric)
     testDemoImplementation(libs.roborazzi)
-    //testDemoImplementation(projects.core.screenshotTesting)
+    testDemoImplementation(projects.core.screenshotTesting)
 
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.navigation.testing)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.hilt.android.testing)
-
-    //baselineProfile(projects.benchmarks)
+    androidTestImplementation(projects.core.testing)
 }
 
 baselineProfile {

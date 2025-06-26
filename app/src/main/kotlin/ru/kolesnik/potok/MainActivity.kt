@@ -8,6 +8,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -29,6 +31,7 @@ import ru.kolesnik.potok.ui.AppState
 import ru.kolesnik.potok.ui.rememberAppState
 import javax.inject.Inject
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -54,11 +57,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val appState = rememberAppState()
+            val appState = rememberAppState(
+                windowSizeClass = calculateWindowSizeClass(this),
+            )
 
-            CompositionLocalProvider(
-                LocalAnalyticsHelper provides analyticsHelper,
-            ) {
+            CompositionLocalProvider(LocalAnalyticsHelper provides analyticsHelper) {
                 AppTheme(
                     darkTheme = shouldUseDarkTheme(uiState),
                     disableDynamicTheming = shouldDisableDynamicTheming(uiState),
@@ -67,17 +70,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        AppNavHost(
-                            appState = appState,
-                            onShowSnackbar = { message, action ->
-                                // ✅ Исправляем: возвращаем Boolean вместо SnackbarResult
-                                appState.snackbarHostState.showSnackbar(
-                                    message = message,
-                                    actionLabel = action,
-                                ) != androidx.compose.material3.SnackbarResult.Dismissed
-                            },
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        AppNavHost(appState = appState)
                     }
                 }
             }
@@ -85,43 +78,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Returns `true` if the Android theme should be used, as a function of the [uiState].
- */
 @Composable
-private fun shouldUseAndroidTheme(
+private fun shouldUseDarkTheme(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
     MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> when (uiState.userData.themeBrand) {
-        ThemeBrand.DEFAULT -> false
-        ThemeBrand.ANDROID -> true
+    is MainActivityUiState.Success -> when (uiState.userData.darkThemeConfig) {
+        DarkThemeConfig.FOLLOW_SYSTEM -> false // isSystemInDarkTheme()
+        DarkThemeConfig.LIGHT -> false
+        DarkThemeConfig.DARK -> true
     }
 }
 
-/**
- * Returns `true` if the dynamic color is disabled, as a function of the [uiState].
- */
 @Composable
 private fun shouldDisableDynamicTheming(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
     MainActivityUiState.Loading -> false
     is MainActivityUiState.Success -> !uiState.userData.useDynamicColor
-}
-
-/**
- * Returns `true` if dark theme should be used, as a function of the [uiState] and the
- * current system context.
- */
-@Composable
-private fun shouldUseDarkTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false // isSystemInDarkTheme()
-    is MainActivityUiState.Success -> when (uiState.userData.darkThemeConfig) {
-        DarkThemeConfig.FOLLOW_SYSTEM -> false // isSystemInDarkTheme()
-        DarkThemeConfig.LIGHT -> false
-        DarkThemeConfig.DARK -> true
-    }
 }
