@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import ru.kolesnik.potok.core.data.repository.FullProjectRepository
+import ru.kolesnik.potok.core.data.repository.TaskRepository
 import ru.kolesnik.potok.core.model.Employee
 import ru.kolesnik.potok.core.model.Task
 import ru.kolesnik.potok.core.network.model.employee.toDomain
-import ru.kolesnik.potok.core.network.repository.FullProjectRepository
-import ru.kolesnik.potok.core.network.repository.TaskRepository
 import ru.kolesnik.potok.feature.task.navigation.TaskDetailViewRoute
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException

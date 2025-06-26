@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import ru.kolesnik.potok.core.data.repository.FlowRepository
+import ru.kolesnik.potok.core.data.repository.FullProjectRepository
+import ru.kolesnik.potok.core.data.repository.LifeAreaRepository
+import ru.kolesnik.potok.core.data.repository.TaskRepository
 import ru.kolesnik.potok.core.model.FlowId
 import ru.kolesnik.potok.core.model.Task
-import ru.kolesnik.potok.core.network.repository.FlowRepository
-import ru.kolesnik.potok.core.network.repository.FullProjectRepository
-import ru.kolesnik.potok.core.network.repository.LifeAreaRepository
-import ru.kolesnik.potok.core.network.repository.TaskRepository
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,7 +32,6 @@ class LifeAreaViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
-
 
     val lifeAreas = lifeAreaRepository.getLifeAreas()
         .stateIn(
@@ -56,7 +55,7 @@ class LifeAreaViewModel @Inject constructor(
             initialValue = emptyMap()
         )
 
-    var tasks = lifeAreas
+    val tasks = lifeAreas
         .flatMapLatest { areas ->
             combine(areas.map { area ->
                 taskRepository.getTaskMainByArea(area.id.toString())
@@ -72,59 +71,27 @@ class LifeAreaViewModel @Inject constructor(
         )
 
     fun deleteTask(taskId: String) = viewModelScope.launch {
-        taskRepository.deleteTask(taskId)
-        tasks = lifeAreas
-            .flatMapLatest { areas ->
-                combine(areas.map { area ->
-                    taskRepository.getTaskMainByArea(area.id.toString())
-                        .map { area.id to it }
-                }) { taskList ->
-                    taskList.associate { it }
-                }
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyMap()
-            )
-
+        try {
+            taskRepository.deleteTask(taskId)
+        } catch (e: Exception) {
+            _error.value = "Ошибка удаления задачи: ${e.localizedMessage}"
+        }
     }
 
     fun createTask(task: Task) = viewModelScope.launch {
-        taskRepository.createTask(task)
-        tasks = lifeAreas
-            .flatMapLatest { areas ->
-                combine(areas.map { area ->
-                    taskRepository.getTaskMainByArea(area.id.toString())
-                        .map { area.id to it }
-                }) { taskList ->
-                    taskList.associate { it }
-                }
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyMap()
-            )
+        try {
+            taskRepository.createTask(task)
+        } catch (e: Exception) {
+            _error.value = "Ошибка создания задачи: ${e.localizedMessage}"
+        }
     }
 
     fun closeTask(taskId: String, flowId: FlowId) = viewModelScope.launch {
-        taskRepository.closeTask(taskId, flowId.toString())
-        tasks = lifeAreas
-            .flatMapLatest { areas ->
-                combine(areas.map { area ->
-                    taskRepository.getTaskMainByArea(area.id.toString())
-                        .map { area.id to it }
-                }) { taskList ->
-                    taskList.associate { it }
-                }
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyMap()
-            )
-
+        try {
+            taskRepository.closeTask(taskId, flowId.toString())
+        } catch (e: Exception) {
+            _error.value = "Ошибка закрытия задачи: ${e.localizedMessage}"
+        }
     }
 
     init {

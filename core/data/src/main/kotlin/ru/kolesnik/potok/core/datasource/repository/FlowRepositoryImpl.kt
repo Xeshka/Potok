@@ -2,81 +2,54 @@ package ru.kolesnik.potok.core.datasource.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import ru.kolesnik.potok.core.data.repository.FlowRepository
 import ru.kolesnik.potok.core.database.dao.LifeFlowDao
-import ru.kolesnik.potok.core.database.entitys.LifeFlowEntity
+import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.model.LifeFlow
+import ru.kolesnik.potok.core.model.extensions.toDomain
+import ru.kolesnik.potok.core.model.extensions.toEntity
 import ru.kolesnik.potok.core.network.api.LifeFlowApi
 import ru.kolesnik.potok.core.network.model.api.LifeFlowRq
-import ru.kolesnik.potok.core.network.repository.FlowRepository
 import java.util.UUID
 import javax.inject.Inject
 
 class FlowRepositoryImpl @Inject constructor(
-    private val lifeFlowApi: LifeFlowApi,
-    private val lifeFlowDao: LifeFlowDao
+    private val api: LifeFlowApi,
+    private val lifeFlowDao: LifeFlowDao,
+    private val taskDao: TaskDao
 ) : FlowRepository {
 
     override fun getFlowByLifeArea(lifeAreaId: String): Flow<List<LifeFlow>> {
         val areaUuid = UUID.fromString(lifeAreaId)
-        return lifeFlowDao.getByAreaIdFlow(areaUuid).map { entities ->
+        return lifeFlowDao.getByAreaId(areaUuid).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    override suspend fun createFlow(lifeAreaId: UUID, title: String, style: String?): UUID {
-        val request = LifeFlowRq(
-            title = title,
-            style = style ?: "style1"
-        )
-        
-        val response = lifeFlowApi.createLifeFlow(lifeAreaId, request)
-        val entity = LifeFlowEntity(
-            id = response.id,
-            areaId = response.areaId,
-            title = response.title,
-            style = response.style,
-            placement = response.placement,
-            status = response.status
-        )
-        
+    override suspend fun createFlow(lifeAreaId: UUID, title: String, style: String): UUID {
+        val request = LifeFlowRq(title = title, style = style)
+        val response = api.createLifeFlow(lifeAreaId, request)
+        val entity = response.toEntity()
         lifeFlowDao.insert(entity)
-        return response.id
+        return entity.id
     }
 
-    override suspend fun updateFlow(flowId: UUID, title: String, style: String?): LifeFlow {
-        val request = LifeFlowRq(
-            title = title,
-            style = style
-        )
-        
-        val response = lifeFlowApi.updateLifeFlow(flowId, request)
-        val entity = LifeFlowEntity(
-            id = response.id,
-            areaId = response.areaId,
-            title = response.title,
-            style = response.style,
-            placement = response.placement,
-            status = response.status
-        )
-        
-        lifeFlowDao.update(entity)
-        return entity.toDomain()
+    override suspend fun updateFlow(id: UUID, title: String, style: String) {
+        val request = LifeFlowRq(title = title, style = style)
+        val updated = api.updateLifeFlow(id, request)
+        lifeFlowDao.update(updated.toEntity())
     }
 
-    override suspend fun deleteFlow(flowId: UUID) {
-        lifeFlowApi.deleteLifeFlow(flowId)
-        val entity = lifeFlowDao.getById(flowId)
-        if (entity != null) {
-            lifeFlowDao.delete(entity)
-        }
+    override suspend fun deleteFlow(id: UUID) {
+        api.deleteLifeFlow(id)
+        taskDao.deleteByFlowId(id)
+        lifeFlowDao.getById(id)?.let { lifeFlowDao.delete(it) }
     }
-    
-    private fun LifeFlowEntity.toDomain(): LifeFlow = LifeFlow(
-        id = id.toString(),
-        areaId = areaId.toString(),
-        title = title,
-        style = style,
-        placement = placement,
-        status = status ?: ru.kolesnik.potok.core.model.FlowStatus.NEW
-    )
+
+    override suspend fun syncFlows(lifeAreaId: UUID) {
+        val flows = api.getLifeFlows(lifeAreaId)
+        val entities = flows.map { it.toEntity() }
+        lifeFlowDao.deleteByAreaId(lifeAreaId)
+        lifeFlowDao.insertAll(entities)
+    }
 }
