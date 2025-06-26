@@ -4,22 +4,20 @@ plugins {
     alias(libs.plugins.app.android.application.flavors)
     alias(libs.plugins.app.android.application.jacoco)
     alias(libs.plugins.app.hilt)
+    id("jacoco")
+    alias(libs.plugins.baselineprofile)
     alias(libs.plugins.roborazzi)
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
     namespace = "ru.kolesnik.potok"
-    compileSdk = 35
 
     defaultConfig {
         applicationId = "ru.kolesnik.potok"
-        minSdk = 26
-        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "ru.kolesnik.potok.core.testing.AppTestRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -27,54 +25,25 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            isDebuggable = true
-            isMinifyEnabled = false
-            isShrinkResources = false
-            
-            // Отключаем R8 для debug
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            applicationIdSuffix = AppBuildType.DEBUG.applicationIdSuffix
         }
-        
         release {
             isMinifyEnabled = true
-            isShrinkResources = true
-            isDebuggable = false
-            
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            
-            // Подпись для release
-            signingConfig = signingConfigs.getByName("debug") // Временно используем debug подпись
+            applicationIdSuffix = AppBuildType.RELEASE.applicationIdSuffix
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            // Ensure the release build type is debuggable for a staging environment.
+            // This is only used to configure the Baseline Profile generation.
+            // Note that this is a small bug in the Baseline Profiles plugin and will be fixed in an upcoming release.
+            signingConfig = signingConfigs.getByName("debug")
         }
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
-        buildConfig = true
     }
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
         }
     }
-
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
@@ -90,9 +59,11 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.data)
     implementation(projects.core.designsystem)
-    implementation(projects.core.model)
     implementation(projects.core.ui)
+    implementation(projects.core.model)
+    implementation(projects.core.notifications)
 
+    implementation(libs.accompanist.permissions)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material3.adaptive.layout)
@@ -108,28 +79,38 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.tracing.ktx)
     implementation(libs.androidx.window.core)
+    implementation(libs.androidx.work.ktx)
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.coil.kt)
 
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
-
-    coreLibraryDesugaring(libs.android.desugarJdkLibs)
-
     debugImplementation(libs.androidx.compose.ui.testManifest)
+    debugImplementation(projects.core.testing)
 
-    kaptTest(libs.hilt.compiler)
+    // Remove kaptTest and kaptAndroidTest - these are not valid configurations
+    // Use testImplementation and androidTestImplementation instead
+    testImplementation(projects.core.testing)
+    testImplementation(libs.androidx.navigation.testing)
+    testImplementation(libs.accompanist.permissions)
+    testImplementation(libs.hilt.android.testing)
 
-    testImplementation(libs.kotlin.test)
-    testImplementation(libs.kotlinx.coroutines.test)
-
-    testDemoImplementation(libs.robolectric)
-    testDemoImplementation(libs.roborazzi)
-    testDemoImplementation(projects.core.screenshotTesting)
-
+    androidTestImplementation(projects.core.testing)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.navigation.testing)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.hilt.android.testing)
-    kaptAndroidTest(libs.hilt.compiler)
+
+    // Remove screenshotTesting reference - use the correct project reference
+    testImplementation(projects.core.testing)
+    
+    baselineProfile(projects.benchmarks)
+}
+
+baselineProfile {
+    // Don't build on every iteration of a full assemble.
+    // Instead enable generation directly for the release build variant.
+    automaticGenerationDuringBuild = false
+}
+
+dependencyGuard {
+    configuration("prodReleaseRuntimeClasspath")
 }
