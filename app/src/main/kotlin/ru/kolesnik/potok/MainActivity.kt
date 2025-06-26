@@ -8,10 +8,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -31,7 +29,6 @@ import ru.kolesnik.potok.ui.AppState
 import ru.kolesnik.potok.ui.rememberAppState
 import javax.inject.Inject
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -57,21 +54,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val appState = rememberAppState(
-                windowSizeClass = calculateWindowSizeClass(this),
-            )
+            val appState = rememberAppState()
+            val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
 
-            CompositionLocalProvider(LocalAnalyticsHelper provides analyticsHelper) {
-                AppTheme(
-                    darkTheme = shouldUseDarkTheme(uiState),
-                    disableDynamicTheming = shouldDisableDynamicTheming(uiState),
+            AppTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        AppNavHost(appState = appState)
-                    }
+                    AppContent(
+                        appState = appState,
+                        windowSizeClass = windowSizeClass
+                    )
                 }
             }
         }
@@ -79,21 +73,13 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun shouldUseDarkTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> when (uiState.userData.darkThemeConfig) {
-        DarkThemeConfig.FOLLOW_SYSTEM -> false // isSystemInDarkTheme()
-        DarkThemeConfig.LIGHT -> false
-        DarkThemeConfig.DARK -> true
-    }
-}
-
-@Composable
-private fun shouldDisableDynamicTheming(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> !uiState.userData.useDynamicColor
+private fun AppContent(
+    appState: AppState,
+    windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass,
+    modifier: Modifier = Modifier,
+) {
+    AppNavHost(
+        appState = appState,
+        modifier = modifier,
+    )
 }
