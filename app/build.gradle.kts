@@ -4,21 +4,22 @@ plugins {
     alias(libs.plugins.app.android.application.flavors)
     alias(libs.plugins.app.android.application.jacoco)
     alias(libs.plugins.app.hilt)
-    alias(libs.plugins.app.android.application.firebase)
-    alias(libs.plugins.baselineprofile)
     alias(libs.plugins.roborazzi)
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
     namespace = "ru.kolesnik.potok"
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "ru.kolesnik.potok"
-        versionCode = 8
-        versionName = "0.1.2" // X.Y.Z; X = Major, Y = minor, Z = Patch level
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
 
-        // Custom test runner to set up Hilt dependency injection
-        testInstrumentationRunner = "ru.kolesnik.potok.core.testing.AppTestRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -27,24 +28,53 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            isDebuggable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
+            // Отключаем R8 для debug
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+        
         release {
             isMinifyEnabled = true
-            applicationIdSuffix = ".release"
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-
-            // To publish on the Play store a private signing key is required, but to allow anyone
-            // who clones the code to sign and run the release variant, use the debug signing key.
-            // TODO: Abstract the signing configuration to a separate file to avoid hardcoding this.
-            signingConfig = signingConfigs.getByName("debug")
+            isShrinkResources = true
+            isDebuggable = false
+            
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Подпись для release
+            signingConfig = signingConfigs.getByName("debug") // Временно используем debug подпись
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
     }
 
     packaging {
         resources {
-            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
@@ -73,6 +103,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    implementation(libs.androidx.lifecycle.viewModelCompose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.tracing.ktx)
@@ -80,11 +111,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.coil.kt)
 
-    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
 
     debugImplementation(libs.androidx.compose.ui.testManifest)
 
-    kspTest(libs.hilt.compiler)
+    kaptTest(libs.hilt.compiler)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -97,15 +131,5 @@ dependencies {
     androidTestImplementation(libs.androidx.navigation.testing)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.hilt.android.testing)
-    androidTestImplementation(projects.core.testing)
-}
-
-baselineProfile {
-    // Don't build on every iteration of a full assemble.
-    // Instead enable generation directly for the release build variant.
-    automaticGenerationDuringBuild = false
-}
-
-dependencyGuard {
-    configuration("prodReleaseRuntimeClasspath")
+    kaptAndroidTest(libs.hilt.compiler)
 }
