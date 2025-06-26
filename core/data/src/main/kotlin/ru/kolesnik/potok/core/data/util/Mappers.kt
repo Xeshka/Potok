@@ -157,31 +157,29 @@ fun NetworkTask.toEntity(): TaskEntity {
         source = this.source,
         taskOwner = this.taskOwner,
         creationDate = this.creationDate,
-        payload = this.payload.let { 
-            ru.kolesnik.potok.core.model.TaskPayload(
-                title = it.title,
-                source = it.source,
-                onMainPage = it.onMainPage,
-                deadline = it.deadline,
-                lifeArea = it.lifeArea,
-                lifeAreaId = it.lifeAreaId,
-                subtitle = it.subtitle,
-                userEdit = it.userEdit,
-                assignees = it.assignees,
-                important = it.important,
-                messageId = it.messageId,
-                fullMessage = it.fullMessage,
-                description = it.description,
-                priority = it.priority,
-                userChangeAssignee = it.userChangeAssignee,
-                organization = it.organization,
-                shortMessage = it.shortMessage,
-                externalId = it.externalId,
-                relatedAssignment = it.relatedAssignment,
-                meanSource = it.meanSource,
-                id = it.id
-            )
-        },
+        payload = ru.kolesnik.potok.core.model.TaskPayload(
+            title = this.payload.title,
+            source = this.payload.source,
+            onMainPage = this.payload.onMainPage,
+            deadline = this.payload.deadline,
+            lifeArea = this.payload.lifeArea,
+            lifeAreaId = this.payload.lifeAreaId,
+            subtitle = this.payload.subtitle,
+            userEdit = this.payload.userEdit,
+            assignees = this.payload.assignees,
+            important = this.payload.important,
+            messageId = this.payload.messageId,
+            fullMessage = this.payload.fullMessage,
+            description = this.payload.description,
+            priority = this.payload.priority,
+            userChangeAssignee = this.payload.userChangeAssignee,
+            organization = this.payload.organization,
+            shortMessage = this.payload.shortMessage,
+            externalId = this.payload.externalId,
+            relatedAssignment = this.payload.relatedAssignment,
+            meanSource = this.payload.meanSource,
+            id = this.payload.id
+        ),
         lifeAreaId = this.payload.lifeAreaId,
         flowId = null,
         lifeAreaPlacement = this.lifeAreaPlacement,
@@ -308,139 +306,6 @@ fun TaskAssigneeEntity.toModel(): TaskAssignee {
     return TaskAssignee(
         employeeId = this.employeeId,
         complete = this.complete
-    )
-}
-
-// DTO -> Domain Model mappers (НЕДОСТАЮЩИЕ МЕТОДЫ)
-fun LifeAreaDTO.toDomainModel(): LifeArea {
-    return LifeArea(
-        id = this.id,
-        title = this.title,
-        style = this.style,
-        tagsId = this.tagsId?.toInt(),
-        placement = this.placement,
-        isDefault = this.isDefault,
-        isTheme = this.isTheme,
-        shared = this.sharedInfo?.let {
-            ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-                areaId = this.id,
-                owner = it.owner,
-                recipients = it.recipients
-            )
-        }
-    )
-}
-
-fun LifeFlowDTO.toDomainModel(): LifeFlow {
-    return LifeFlow(
-        id = this.id.toString(),
-        areaId = this.areaId.toString(),
-        title = this.title,
-        style = this.style,
-        placement = this.placement,
-        status = when (this.status) {
-            ru.kolesnik.potok.core.network.model.api.FlowStatus.NEW -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-            ru.kolesnik.potok.core.network.model.api.FlowStatus.IN_PROGRESS -> ru.kolesnik.potok.core.model.FlowStatus.IN_PROGRESS
-            ru.kolesnik.potok.core.network.model.api.FlowStatus.COMPLETED -> ru.kolesnik.potok.core.model.FlowStatus.COMPLETED
-            ru.kolesnik.potok.core.network.model.api.FlowStatus.CUSTOM -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
-            null -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-        }
-    )
-}
-
-fun NetworkLifeArea.toDomainModel(): LifeArea {
-    return LifeArea(
-        id = this.id,
-        title = this.title,
-        style = this.style,
-        tagsId = this.tagsId?.toInt(),
-        placement = this.placement,
-        isDefault = this.isDefault,
-        isTheme = this.isTheme,
-        shared = this.sharedInfo?.let {
-            ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-                areaId = this.id,
-                owner = it.owner,
-                recipients = it.recipients
-            )
-        }
-    )
-}
-
-fun NetworkLifeFlow.toDomainModel(): LifeFlow {
-    return LifeFlow(
-        id = this.id.toString(),
-        areaId = this.areaId.toString(),
-        title = this.title,
-        style = this.style,
-        placement = this.placement,
-        status = when (this.status) {
-            "NEW" -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-            "IN_PROGRESS" -> ru.kolesnik.potok.core.model.FlowStatus.IN_PROGRESS
-            "COMPLETED" -> ru.kolesnik.potok.core.model.FlowStatus.COMPLETED
-            "CUSTOM" -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
-            else -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-        }
-    )
-}
-
-fun NetworkTask.toDomainModel(): Task {
-    return Task(
-        id = this.id,
-        title = this.title,
-        subtitle = this.subtitle,
-        mainOrder = this.mainOrder,
-        source = this.source,
-        taskOwner = this.taskOwner,
-        creationDate = this.creationDate,
-        payload = this.payload.let { 
-            ru.kolesnik.potok.core.model.TaskPayload(
-                title = it.title,
-                source = it.source,
-                onMainPage = it.onMainPage,
-                deadline = it.deadline,
-                lifeArea = it.lifeArea,
-                lifeAreaId = it.lifeAreaId,
-                subtitle = it.subtitle,
-                userEdit = it.userEdit,
-                assignees = it.assignees,
-                important = it.important,
-                messageId = it.messageId,
-                fullMessage = it.fullMessage,
-                description = it.description,
-                priority = it.priority,
-                userChangeAssignee = it.userChangeAssignee,
-                organization = it.organization,
-                shortMessage = it.shortMessage,
-                externalId = it.externalId,
-                relatedAssignment = it.relatedAssignment,
-                meanSource = it.meanSource,
-                id = it.id
-            )
-        },
-        internalId = this.internalId,
-        lifeAreaPlacement = this.lifeAreaPlacement,
-        flowPlacement = this.flowPlacement,
-        assignees = this.assignees?.map { 
-            TaskAssignee(
-                employeeId = it.employeeId,
-                complete = it.complete
-            )
-        },
-        commentCount = this.commentCount,
-        attachmentCount = this.attachmentCount,
-        checkList = this.checkList?.map {
-            ChecklistTask(
-                id = it.id,
-                title = it.title,
-                done = it.done ?: false,
-                placement = it.placement ?: 0,
-                responsibles = it.responsibles ?: emptyList(),
-                deadline = it.deadline
-            )
-        },
-        lifeAreaId = this.payload.lifeAreaId,
-        flowId = null
     )
 }
 
