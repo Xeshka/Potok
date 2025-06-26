@@ -1,7 +1,4 @@
 # Ignore all files except those in core, feature, and app modules
-*
-!core/**
-!feature/**
 app/**
 build-logic/**
 !.boltignore
