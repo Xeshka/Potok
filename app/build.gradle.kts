@@ -1,10 +1,10 @@
 plugins {
     alias(libs.plugins.app.android.application)
     alias(libs.plugins.app.android.application.compose)
+    alias(libs.plugins.app.android.application.firebase)
     alias(libs.plugins.app.android.application.flavors)
     alias(libs.plugins.app.android.application.jacoco)
     alias(libs.plugins.app.hilt)
-    id("jacoco")
     alias(libs.plugins.baselineprofile)
     alias(libs.plugins.roborazzi)
 }
@@ -14,9 +14,10 @@ android {
 
     defaultConfig {
         applicationId = "ru.kolesnik.potok"
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 8
+        versionName = "0.1.2" // X.Y.Z; X = Major, Y = minor, Z = Patch level
 
+        // Custom test runner to set up Hilt dependency injection
         testInstrumentationRunner = "ru.kolesnik.potok.core.testing.AppTestRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -25,17 +26,19 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = AppBuildType.DEBUG.applicationIdSuffix
+            applicationIdSuffix = ".debug"
         }
         release {
             isMinifyEnabled = true
-            applicationIdSuffix = AppBuildType.RELEASE.applicationIdSuffix
+            applicationIdSuffix = ".release"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
-            // Ensure the release build type is debuggable for a staging environment.
-            // This is only used to configure the Baseline Profile generation.
-            // Note that this is a small bug in the Baseline Profiles plugin and will be fixed in an upcoming release.
-            signingConfig = signingConfigs.getByName("debug")
+            // To publish on the Play store a private signing key is required, but to allow anyone
+            // who clones the code to sign and run the release variant, use the debug signing key.
+            // TODO: Abstract the signing configuration to a separate file to avoid hardcoding this.
+            signingConfig = signingConfigs.named("debug").get()
+            // Ensure Baseline Profile is fresh for release builds.
+            baselineProfile.automaticGenerationDuringBuild = true
         }
     }
 
@@ -55,20 +58,19 @@ dependencies {
     implementation(projects.feature.lifearea)
     implementation(projects.feature.task)
 
-    implementation(projects.core.analytics)
     implementation(projects.core.common)
-    implementation(projects.core.data)
-    implementation(projects.core.designsystem)
     implementation(projects.core.ui)
+    implementation(projects.core.designsystem)
+    implementation(projects.core.data)
     implementation(projects.core.model)
+    implementation(projects.core.analytics)
     implementation(projects.core.notifications)
 
-    implementation(libs.accompanist.permissions)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material3.windowSizeClass)
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.material3.adaptive.navigation)
-    implementation(libs.androidx.compose.material3.windowSizeClass)
     implementation(libs.androidx.compose.runtime.tracing)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
@@ -84,25 +86,25 @@ dependencies {
     implementation(libs.coil.kt)
 
     debugImplementation(libs.androidx.compose.ui.testManifest)
-    debugImplementation(projects.core.testing)
 
-    // Remove kaptTest and kaptAndroidTest - these are not valid configurations
-    // Use testImplementation and androidTestImplementation instead
-    testImplementation(projects.core.testing)
-    testImplementation(libs.androidx.navigation.testing)
-    testImplementation(libs.accompanist.permissions)
+    // Удаляем неработающие зависимости
+    // kaptTest(libs.hilt.compiler)
+    // kaptTest(libs.hilt.ext.compiler)
+
     testImplementation(libs.hilt.android.testing)
+    // testImplementation(projects.core.screenshotTesting)
+    testImplementation(libs.kotlin.test)
 
-    androidTestImplementation(projects.core.testing)
+    testDemoImplementation(libs.robolectric)
+
+    // Удаляем неработающие зависимости
+    // kaptAndroidTest(libs.hilt.compiler)
+    // kaptAndroidTest(libs.hilt.ext.compiler)
+    
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.navigation.testing)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.hilt.android.testing)
-
-    // Remove screenshotTesting reference - use the correct project reference
-    testImplementation(projects.core.testing)
-    
-    baselineProfile(projects.benchmarks)
 }
 
 baselineProfile {
