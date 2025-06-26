@@ -31,6 +31,11 @@ abstract class DataModule {
     ): ChecklistRepository
 
     @Binds
+    abstract fun bindCommentRepository(
+        commentRepositoryImpl: CommentRepositoryImpl
+    ): CommentRepository
+
+    @Binds
     abstract fun bindSearchRepository(
         searchRepositoryImpl: SearchRepositoryImpl
     ): SearchRepository

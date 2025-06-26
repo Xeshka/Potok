@@ -86,7 +86,7 @@ fun TaskRs.toEntity(): TaskEntity {
 fun TaskCommentDTO.toEntity(): TaskCommentEntity {
     return TaskCommentEntity(
         id = this.id,
-        taskCardId = UUID.randomUUID(), // Нужно передавать извне
+        taskCardId = UUID.randomUUID(), // Будет переопределено при использовании
         parentCommentId = this.parentCommentId,
         owner = this.owner,
         text = this.text,
@@ -98,7 +98,7 @@ fun TaskCommentDTO.toEntity(): TaskCommentEntity {
 fun ChecklistTaskDTO.toEntity(): ChecklistTaskEntity {
     return ChecklistTaskEntity(
         id = this.id,
-        taskCardId = UUID.randomUUID(), // Нужно передавать извне
+        taskCardId = UUID.randomUUID(), // Будет переопределено при использовании
         title = this.title,
         done = this.done ?: false,
         placement = this.placement ?: 0,
@@ -205,4 +205,16 @@ fun TaskAssigneeEntity.toModel(): TaskAssignee {
         employeeId = this.employeeId,
         complete = this.complete
     )
+}
+
+// Model -> DTO mappers для создания запросов
+fun TaskComment.toCreateRequest(): TaskCommentRq {
+    return TaskCommentRq(
+        text = this.text,
+        parentCommentId = this.parentCommentId
+    )
+}
+
+fun ChecklistTask.toCreateRequest(): ChecklistTaskTitleRq {
+    return ChecklistTaskTitleRq(title = this.title)
 }
