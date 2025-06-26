@@ -1,4 +1,81 @@
-# Ignore all files except those in core, feature, and app modules
-app/**
-build-logic/**
-!.boltignore
+# Gradle files
+gradle/
+gradlew
+gradlew.bat
+gradle.properties
+*.gradle.kts
+settings.gradle.kts
+
+# Build directories
+build/
+*/build/
+**/build/
+
+# Generated files
+*.apk
+*.aab
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation and scripts
+README.md
+*.md
+*.sh
+docs/
+
+# Core modules
+core/analytics/
+core/common/
+core/data/
+core/database/
+core/datastore/
+core/datastore-proto/
+core/datastore-test/
+core/designsystem/
+core/model/
+core/network/
+core/notifications/
+core/screenshot-testing/
+core/testing/
+core/ui/
+
+# Feature modules
+feature/lifearea/
+feature/task/
+
+# Build logic
+build-logic/
+
+# Configuration files
+secrets.defaults.properties
+google-services.json
+proguard-rules.pro
+
+# Resources
+app/src/main/res/
+*/src/main/res/
+
+# Manifests
+*/src/main/AndroidManifest.xml
+
+# Test files
+*/src/test/
+*/src/androidTest/
+
+# Assets
+*/src/demo/assets/
+*/src/main/assets/
+
+# Generated schemas
+*/schemas/
