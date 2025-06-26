@@ -5,20 +5,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -64,27 +61,28 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Turn off the decor fitting system windows, which allows us to handle insets,
-        // including IME animations, and go edge-to-edge
-        // This also sets up the initial system bar style based on the platform theme
         enableEdgeToEdge()
 
         setContent {
+            val darkTheme = shouldUseDarkTheme(uiState)
+
+            // Update the edge to edge configuration to match the theme
+            // This is the same parameters as the default enableEdgeToEdge call, but we manually
+            // resolve whether or not to show dark theme using uiState, since it can be different
+            // than the configuration's dark theme value based on the user preference.
+            DisposableEffect(darkTheme) {
+                enableEdgeToEdge()
+                onDispose {}
+            }
+
             val appState = rememberAppState()
 
             CompositionLocalProvider(LocalAnalyticsHelper provides analyticsHelper) {
                 AppTheme(
-                    darkTheme = shouldUseDarkTheme(uiState),
-                    disableDynamicTheming = shouldDisableDynamicTheming(uiState),
+                    darkTheme = darkTheme,
+                    dynamicColor = shouldUseDynamicColor(uiState),
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        AppNavHost(
-                            navController = appState.navController,
-                        )
-                    }
+                    AppNavHost(appState = appState)
                 }
             }
         }
@@ -95,13 +93,14 @@ class MainActivity : ComponentActivity() {
  * Returns `true` if the Android theme should be used, as a function of the [uiState].
  */
 @Composable
-private fun shouldUseAndroidTheme(
+private fun shouldUseDarkTheme(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> when (uiState.userData.themeBrand) {
-        ThemeBrand.DEFAULT -> false
-        ThemeBrand.ANDROID -> true
+    MainActivityUiState.Loading -> isSystemInDarkTheme()
+    is MainActivityUiState.Success -> when (uiState.userData.darkThemeConfig) {
+        DarkThemeConfig.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+        DarkThemeConfig.LIGHT -> false
+        DarkThemeConfig.DARK -> true
     }
 }
 
@@ -109,25 +108,9 @@ private fun shouldUseAndroidTheme(
  * Returns `true` if the dynamic color is disabled, as a function of the [uiState].
  */
 @Composable
-private fun shouldDisableDynamicTheming(
+private fun shouldUseDynamicColor(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
     MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> !uiState.userData.useDynamicColor
-}
-
-/**
- * Returns `true` if dark theme should be used, as a function of the [uiState] and the
- * current system context.
- */
-@Composable
-private fun shouldUseDarkTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false // isSystemInDarkTheme()
-    is MainActivityUiState.Success -> when (uiState.userData.darkThemeConfig) {
-        DarkThemeConfig.FOLLOW_SYSTEM -> false // isSystemInDarkTheme()
-        DarkThemeConfig.LIGHT -> false
-        DarkThemeConfig.DARK -> true
-    }
+    is MainActivityUiState.Success -> uiState.userData.useDynamicColor
 }

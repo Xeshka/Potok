@@ -12,18 +12,19 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainActivityViewModel @Inject constructor() : ViewModel() {
+    
     val uiState: StateFlow<MainActivityUiState> = flowOf(
         UserData(
-            themeBrand = ThemeBrand.DEFAULT,
             darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-            useDynamicColor = false,
-            shouldHideOnboarding = true,
+            useDynamicColor = true,
+            shouldHideOnboarding = true
         )
-    ).map(MainActivityUiState::Success).stateIn(
-        scope = viewModelScope,
-        initialValue = MainActivityUiState.Loading,
-        started = SharingStarted.WhileSubscribed(5_000),
-    )
+    ).map(MainActivityUiState::Success)
+        .stateIn(
+            scope = viewModelScope,
+            initialValue = MainActivityUiState.Loading,
+            started = SharingStarted.WhileSubscribed(5_000),
+        )
 }
 
 sealed interface MainActivityUiState {
@@ -32,16 +33,13 @@ sealed interface MainActivityUiState {
 }
 
 data class UserData(
-    val themeBrand: ThemeBrand,
     val darkThemeConfig: DarkThemeConfig,
     val useDynamicColor: Boolean,
     val shouldHideOnboarding: Boolean,
 )
 
-enum class ThemeBrand {
-    DEFAULT, ANDROID
-}
-
 enum class DarkThemeConfig {
-    FOLLOW_SYSTEM, LIGHT, DARK
+    FOLLOW_SYSTEM,
+    LIGHT,
+    DARK,
 }

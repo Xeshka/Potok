@@ -9,6 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
+import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute
+import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaBaseRoute
 
 @Composable
 fun rememberAppState(
@@ -31,10 +33,12 @@ class AppState(
         @Composable get() = navController
             .currentBackStackEntryAsState().value?.destination
 
-    /**
-     * Map of top level destinations to be used in the BottomBar, BottomSheet and Rail. The key is
-     * the route.
-     */
+    val currentTopLevelDestination: TopLevelDestination?
+        @Composable get() = when (currentDestination?.route) {
+            LifeAreaRoute::class.qualifiedName -> TopLevelDestination.LIFE_AREAS
+            else -> null
+        }
+
     val topLevelDestinations: List<TopLevelDestination> = TopLevelDestination.entries
 
     /**
@@ -60,17 +64,18 @@ class AppState(
         }
 
         when (topLevelDestination) {
-            TopLevelDestination.LIFE_AREA -> navController.navigate(
-                ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute, topLevelNavOptions
-            )
+            TopLevelDestination.LIFE_AREAS -> navController.navigate(LifeAreaBaseRoute, topLevelNavOptions)
         }
     }
 }
 
+/**
+ * Top level destinations in the application.
+ */
 enum class TopLevelDestination(
     val titleTextId: String,
 ) {
-    LIFE_AREA(
+    LIFE_AREAS(
         titleTextId = "Области жизни",
     ),
 }
