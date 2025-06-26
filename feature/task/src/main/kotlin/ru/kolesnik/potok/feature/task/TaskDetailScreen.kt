@@ -38,7 +38,6 @@ import ru.kolesnik.potok.core.model.TaskPayload
 import ru.kolesnik.potok.core.ui.AppHeader
 import ru.kolesnik.potok.core.ui.SaveButton
 import ru.kolesnik.potok.core.ui.TaskHeaderSection
-import ru.kolesnik.potok.core.ui.assignees.getFIO
 import ru.kolesnik.potok.core.ui.task.InputFieldsSection
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -81,8 +80,7 @@ fun TaskDetailScreen(
                 rightContent = {
                     state.task?.let {
                         TaskHeaderSection(
-                            taskOwner = state.employees.firstOrNull { state.task?.taskOwner == it.employeeId }
-                                ?.getFIO() ?: state.task?.taskOwner ?: "Отсутствует",
+                            taskOwner = state.task?.taskOwner ?: "Неизвестен",
                             creationDate = state.task?.creationDate,
                         )
                     }
