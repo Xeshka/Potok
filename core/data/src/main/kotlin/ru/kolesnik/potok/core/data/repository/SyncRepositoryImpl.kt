@@ -8,7 +8,6 @@ import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toDomainModel
-import ru.kolesnik.potok.core.data.util.NetworkMappers.toDomainModel
 import javax.inject.Inject
 import javax.inject.Singleton
 
