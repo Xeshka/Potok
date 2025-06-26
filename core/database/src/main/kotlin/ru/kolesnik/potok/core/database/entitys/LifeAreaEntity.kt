@@ -3,9 +3,7 @@ package ru.kolesnik.potok.core.database.entitys
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-import ru.kolesnik.potok.core.network.model.api.LifeAreaSharedInfo
-
-
+import ru.kolesnik.potok.core.model.LifeAreaSharedInfo
 import java.util.UUID
 
 @Entity(tableName = "life_areas")

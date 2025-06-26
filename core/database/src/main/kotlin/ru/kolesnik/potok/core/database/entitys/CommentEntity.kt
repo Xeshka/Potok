@@ -3,6 +3,7 @@ package ru.kolesnik.potok.core.database.entitys
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -14,15 +15,10 @@ import java.util.UUID
             parentColumns = ["cardId"],
             childColumns = ["taskCardId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = TaskCommentEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["parentCommentId"],
-            onDelete = ForeignKey.CASCADE
         )
     ]
 )
+@TypeConverters(Converters::class)
 data class TaskCommentEntity(
     @PrimaryKey val id: UUID,
     val taskCardId: UUID,

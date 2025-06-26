@@ -1,6 +1,8 @@
 package ru.kolesnik.potok.core.network.demo
 
-import ru.kolesnik.potok.core.network.model.api.*
+import ru.kolesnik.potok.core.network.model.api.LifeAreaDTO
+import ru.kolesnik.potok.core.network.model.api.LifeAreaMoveDTO
+import ru.kolesnik.potok.core.network.model.api.LifeAreaRq
 import ru.kolesnik.potok.core.network.retrofit.LifeAreaApi
 import java.util.UUID
 import javax.inject.Inject
@@ -12,12 +14,25 @@ class DemoLifeAreaApi @Inject constructor(
 ) : LifeAreaApi {
     
     override suspend fun getLifeAreas(): List<LifeAreaDTO> {
-        return dataSource.getFullLifeAreas()
+        return dataSource.gtFullNew()
+    }
+    
+    override suspend fun getFullLifeAreas(): List<LifeAreaDTO> {
+        return dataSource.gtFullNew()
     }
     
     override suspend fun createLifeArea(request: LifeAreaRq): LifeAreaDTO {
-        // Заглушка для демо-режима
-        return dataSource.getFullLifeAreas().first()
+        // Создаем заглушечную сферу жизни
+        return LifeAreaDTO(
+            id = UUID.randomUUID(),
+            title = request.title,
+            style = request.style,
+            tagsId = request.tagsId,
+            placement = request.placement,
+            isDefault = false,
+            isTheme = request.isTheme,
+            onlyPersonal = request.onlyPersonal
+        )
     }
     
     override suspend fun collocateLifeAreas(lifeAreaIds: List<UUID>) {
@@ -29,8 +44,17 @@ class DemoLifeAreaApi @Inject constructor(
     }
     
     override suspend fun updateLifeArea(id: UUID, request: LifeAreaRq): LifeAreaDTO {
-        // Заглушка для демо-режима
-        return dataSource.getFullLifeAreas().first()
+        // Возвращаем обновленную сферу жизни
+        return LifeAreaDTO(
+            id = id,
+            title = request.title,
+            style = request.style,
+            tagsId = request.tagsId,
+            placement = request.placement,
+            isDefault = false,
+            isTheme = request.isTheme,
+            onlyPersonal = request.onlyPersonal
+        )
     }
     
     override suspend fun deleteLifeArea(id: UUID) {

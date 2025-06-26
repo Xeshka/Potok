@@ -19,6 +19,7 @@ import ru.kolesnik.potok.core.network.model.potok.PatchPayload
 import ru.kolesnik.potok.core.network.network.AppDispatchers
 import ru.kolesnik.potok.core.network.network.Dispatcher
 import java.io.BufferedReader
+import java.util.UUID
 import javax.inject.Inject
 
 class DemoSyncFullDataSource @Inject constructor(
@@ -44,35 +45,89 @@ class DemoSyncFullDataSource @Inject constructor(
         }
 
     companion object {
-        private const val FULL = "full.json"
-        private const val FULL_LIFE_AREAS = "full.json"
-        private const val EMPLOYEE = "employee.json"
-    }
-
-
-    suspend fun getFullLifeAreas(): List<LifeAreaDTO> {
-        return getDataFromJsonFile(FULL_LIFE_AREAS)
+        private const val FULL_DATA_FILE = "full copy copy copy.json"
+        private const val EMPLOYEE_FILE = "employee.json"
     }
 
     override suspend fun getFull(): List<NetworkLifeArea> {
-        return getDataFromJsonFile(FULL)
+        return getDataFromJsonFile(FULL_DATA_FILE)
     }
 
     override suspend fun gtFullNew(): List<LifeAreaDTO> {
-        return getDataFromJsonFile(FULL_LIFE_AREAS)
+        return getDataFromJsonFile(FULL_DATA_FILE)
     }
 
     override suspend fun getEmployee(
         employeeNumbers: List<EmployeeId>,
         avatar: Boolean
-    ): List<EmployeeResponse> = getDataFromJsonFile(EMPLOYEE)
+    ): List<EmployeeResponse> {
+        // Возвращаем заглушечные данные о сотрудниках
+        return listOf(
+            EmployeeResponse(
+                employeeNumber = "449927",
+                timezone = "3",
+                terBank = "ЦА",
+                employeeId = "449927",
+                lastName = "Колесник",
+                firstName = "Никита",
+                middleName = "Сергеевич",
+                position = "Главный инженер по разработке",
+                mainEmail = "NSKolesnik@sberbank.ru",
+                avatar = "/api/service-addressbook/api/v1/addressbook/employee/449927/userphoto.jpeg"
+            ),
+            EmployeeResponse(
+                employeeNumber = "91112408208",
+                timezone = "3",
+                terBank = "ЦА",
+                employeeId = "91112408208",
+                lastName = "Иванов",
+                firstName = "Иван",
+                middleName = "Иванович",
+                position = "Разработчик",
+                mainEmail = "IIIvanov@sberbank.ru",
+                avatar = null
+            ),
+            EmployeeResponse(
+                employeeNumber = "1796367",
+                timezone = "3",
+                terBank = "ЦА",
+                employeeId = "1796367",
+                lastName = "Петров",
+                firstName = "Петр",
+                middleName = "Петрович",
+                position = "Менеджер",
+                mainEmail = "PPPetrov@sberbank.ru",
+                avatar = null
+            )
+        )
+    }
 
     override suspend fun patchTask(taskId: TaskExternalId, task: PatchPayload) {
-        // Пустая реализация для демо
+        // В демо-режиме просто логируем действие
+        println("Demo mode: Patching task $taskId with $task")
     }
 
     override suspend fun createTask(task: NetworkCreateTask): NetworkTask {
-        val t: List<NetworkLifeArea> = getDataFromJsonFile(FULL)
-        return t.first().flows!!.first().tasks!!.first()
+        // Создаем заглушечную задачу с уникальным ID
+        val taskId = UUID.randomUUID().toString().substring(0, 8)
+        val cardId = UUID.randomUUID()
+        
+        return NetworkTask(
+            id = taskId,
+            title = task.payload.title ?: "Новая задача",
+            taskOwner = "449927", // Текущий пользователь
+            creationDate = java.time.OffsetDateTime.now(),
+            payload = task.payload,
+            cardId = cardId,
+            internalId = System.currentTimeMillis(),
+            lifeAreaId = task.lifeAreaId,
+            flowId = task.flowId,
+            assignees = task.payload.assignees?.map { 
+                ru.kolesnik.potok.core.network.model.api.TaskAssigneeRs(
+                    employeeId = it,
+                    complete = false
+                )
+            }
+        )
     }
 }

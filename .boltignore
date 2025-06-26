@@ -1,33 +1,6 @@
-# Игнорировать все пакеты кроме core
-app/
-feature/
-build-logic/
-gradle/
-docs/
-
-# Игнорировать файлы сборки и конфигурации
-*.gradle
-*.gradle.kts
-gradlew
-gradlew.bat
-gradle.properties
-generateModuleGraphs.sh
-
-# Игнорировать документацию и README файлы (кроме core)
-README.md
-/*/README.md
-!/core/*/README.md
-
-# Игнорировать конфигурационные файлы
-secrets.defaults.properties
-
-# Игнорировать бинарные файлы
-*.jar
-*.webp
-*.png
-*.svg
-*.jks
-
-# Игнорировать временные и сгенерированные файлы
-.gitignore
-*/.gitignore
+# Ignore all directories except core
+/app/
+/feature/
+/build-logic/
+/gradle/
+/docs/

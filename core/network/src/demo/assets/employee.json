@@ -34,5 +34,41 @@
         "isMain": true
       }
     ]
+  },
+  {
+    "employeeNumber": "91112408208",
+    "timezone": "3",
+    "terBank": "ЦА",
+    "employeeId": "91112408208",
+    "lastName": "Иванов",
+    "firstName": "Иван",
+    "middleName": "Иванович",
+    "position": "Разработчик",
+    "mainEmail": "IIIvanov@sberbank.ru",
+    "hrInfo": {
+      "position": "Разработчик",
+      "department": "Отдел разработки",
+      "departmentId": "",
+      "departmentTree": "",
+      "departmentIdTree": ""
+    }
+  },
+  {
+    "employeeNumber": "1796367",
+    "timezone": "3",
+    "terBank": "ЦА",
+    "employeeId": "1796367",
+    "lastName": "Петров",
+    "firstName": "Петр",
+    "middleName": "Петрович",
+    "position": "Менеджер",
+    "mainEmail": "PPPetrov@sberbank.ru",
+    "hrInfo": {
+      "position": "Менеджер",
+      "department": "Отдел управления",
+      "departmentId": "",
+      "departmentTree": "",
+      "departmentIdTree": ""
+    }
   }
 ]

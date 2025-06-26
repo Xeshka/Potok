@@ -3,6 +3,7 @@ package ru.kolesnik.potok.core.database.entitys
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
 import ru.kolesnik.potok.core.model.TaskPayload
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -24,6 +25,7 @@ import java.util.UUID
         )
     ]
 )
+@TypeConverters(Converters::class)
 data class TaskEntity(
     @PrimaryKey val cardId: UUID,
     val externalId: String?,
@@ -46,14 +48,9 @@ data class TaskEntity(
 
 @Entity(
     tableName = "task_assignees",
-    primaryKeys = ["taskCardId", "employeeId"],
-    foreignKeys = [ForeignKey(
-        entity = TaskEntity::class,
-        parentColumns = ["cardId"],
-        childColumns = ["taskCardId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    primaryKeys = ["taskCardId", "employeeId"]
 )
+@TypeConverters(Converters::class)
 data class TaskAssigneeEntity(
     val taskCardId: UUID,
     val employeeId: String,
