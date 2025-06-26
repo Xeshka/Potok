@@ -8,11 +8,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -37,7 +38,6 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
@@ -51,39 +51,34 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Keep the splash screen on-screen until the UI state is loaded. This condition is
-        // evaluated each time the app needs to be redrawn so it should be fast to avoid blocking
-        // the UI.
-        splashScreen.setKeepOnScreenCondition {
-            when (uiState) {
-                MainActivityUiState.Loading -> true
-                is MainActivityUiState.Success -> false
-            }
-        }
-
         enableEdgeToEdge()
 
         setContent {
             val appState = rememberAppState()
 
-            AppTheme(
-                darkTheme = shouldUseDarkTheme(uiState),
-                disableDynamicTheming = shouldDisableDynamicTheming(uiState),
+            CompositionLocalProvider(
+                LocalAnalyticsHelper provides analyticsHelper,
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
+                AppTheme(
+                    darkTheme = shouldUseDarkTheme(uiState),
+                    disableDynamicTheming = shouldDisableDynamicTheming(uiState),
                 ) {
-                    AppNavHost(
-                        appState = appState,
-                        onShowSnackbar = { message, action ->
-                            appState.snackbarHostState.showSnackbar(
-                                message = message,
-                                actionLabel = action,
-                            )
-                        },
-                        modifier = Modifier,
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
+                        AppNavHost(
+                            appState = appState,
+                            onShowSnackbar = { message, action ->
+                                // ✅ Исправляем: возвращаем Boolean вместо SnackbarResult
+                                appState.snackbarHostState.showSnackbar(
+                                    message = message,
+                                    actionLabel = action,
+                                ) != androidx.compose.material3.SnackbarResult.Dismissed
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
             }
         }
@@ -93,6 +88,7 @@ class MainActivity : ComponentActivity() {
 /**
  * Returns `true` if the Android theme should be used, as a function of the [uiState].
  */
+@Composable
 private fun shouldUseAndroidTheme(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
@@ -106,6 +102,7 @@ private fun shouldUseAndroidTheme(
 /**
  * Returns `true` if the dynamic color is disabled, as a function of the [uiState].
  */
+@Composable
 private fun shouldDisableDynamicTheming(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
@@ -117,6 +114,7 @@ private fun shouldDisableDynamicTheming(
  * Returns `true` if dark theme should be used, as a function of the [uiState] and the
  * current system context.
  */
+@Composable
 private fun shouldUseDarkTheme(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {

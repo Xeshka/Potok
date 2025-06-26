@@ -7,16 +7,25 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 @HiltViewModel
 class MainActivityViewModel @Inject constructor() : ViewModel() {
+    
     val uiState: StateFlow<MainActivityUiState> = 
-        flowOf(UserData()).map(MainActivityUiState::Success).stateIn(
+        kotlinx.coroutines.flow.flowOf(
+            MainActivityUiState.Success(
+                userData = UserData(
+                    themeBrand = ThemeBrand.DEFAULT,
+                    darkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
+                    useDynamicColor = false,
+                    shouldHideOnboarding = true,
+                )
+            )
+        ).stateIn(
             scope = viewModelScope,
-            initialValue = MainActivityUiState.Loading,
             started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = MainActivityUiState.Loading,
         )
 }
 
@@ -26,10 +35,10 @@ sealed interface MainActivityUiState {
 }
 
 data class UserData(
-    val themeBrand: ThemeBrand = ThemeBrand.DEFAULT,
-    val darkThemeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-    val useDynamicColor: Boolean = false,
-    val shouldHideOnboarding: Boolean = true,
+    val themeBrand: ThemeBrand,
+    val darkThemeConfig: DarkThemeConfig,
+    val useDynamicColor: Boolean,
+    val shouldHideOnboarding: Boolean,
 )
 
 enum class ThemeBrand {

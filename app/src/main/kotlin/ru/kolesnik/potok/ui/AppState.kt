@@ -12,43 +12,33 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import kotlinx.coroutines.CoroutineScope
-import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute
-import ru.kolesnik.potok.feature.task.navigation.navigateToTask
 
 @Composable
 fun rememberAppState(
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     navController: NavHostController = rememberNavController(),
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
 ): AppState {
     return remember(
-        snackbarHostState,
         navController,
         coroutineScope,
     ) {
         AppState(
-            snackbarHostState = snackbarHostState,
-            navController = navController,
-            coroutineScope = coroutineScope,
+            navController,
+            coroutineScope,
         )
     }
 }
 
 @Stable
 class AppState(
-    val snackbarHostState: SnackbarHostState,
     val navController: NavHostController,
-    coroutineScope: CoroutineScope,
+    val coroutineScope: CoroutineScope,
 ) {
+    val snackbarHostState = SnackbarHostState()
+
     val currentDestination: NavDestination?
         @Composable get() = navController
             .currentBackStackEntryAsState().value?.destination
-
-    val currentTopLevelDestination: TopLevelDestination?
-        @Composable get() = when (currentDestination?.route) {
-            LifeAreaRoute::class.qualifiedName -> TopLevelDestination.LIFE_AREAS
-            else -> null
-        }
 
     /**
      * UI logic for navigating to a top level destination in the app. Top level destinations have
@@ -73,18 +63,14 @@ class AppState(
         }
 
         when (topLevelDestination) {
-            TopLevelDestination.LIFE_AREAS -> navController.navigate(LifeAreaRoute, topLevelNavOptions)
+            TopLevelDestination.LIFE_AREAS -> navController.navigate(
+                ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute,
+                topLevelNavOptions
+            )
         }
-    }
-
-    fun navigateToTask(taskId: String) {
-        navController.navigateToTask(taskId)
     }
 }
 
-/**
- * Top level destinations to be used in the BottomBar, NavRail, and NavDrawer
- */
 enum class TopLevelDestination(
     val titleTextId: String,
 ) {
