@@ -1,6 +1,8 @@
 package ru.kolesnik.potok.core.database.entitys
 
 import androidx.room.TypeConverter
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import ru.kolesnik.potok.core.model.LifeAreaSharedInfo
 import ru.kolesnik.potok.core.model.TaskPayload
@@ -11,98 +13,55 @@ import java.time.OffsetDateTime
 import java.util.*
 
 class Converters {
-    private val json = Json { 
-        ignoreUnknownKeys = true 
-        isLenient = true
-        coerceInputValues = true
-    }
+    private val json = Json { ignoreUnknownKeys = true }
 
     // UUID
     @TypeConverter
-    fun fromUUID(value: UUID?): String? = value?.toString()
+    fun fromUUID(value: UUID?) = value?.toString()
 
     @TypeConverter
-    fun toUUID(value: String?): UUID? = try {
-        value?.let { UUID.fromString(it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toUUID(value: String?) = value?.let { UUID.fromString(it) }
 
     // OffsetDateTime
     @TypeConverter
-    fun fromOffsetDateTime(value: OffsetDateTime?): String? = value?.toString()
+    fun fromOffsetDateTime(value: OffsetDateTime?) = value?.toString()
 
     @TypeConverter
-    fun toOffsetDateTime(value: String?): OffsetDateTime? = try {
-        value?.let { OffsetDateTime.parse(it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toOffsetDateTime(value: String?) = value?.let { OffsetDateTime.parse(it) }
 
     // LocalDate
     @TypeConverter
-    fun fromLocalDate(value: LocalDate?): String? = value?.toString()
+    fun fromLocalDate(value: LocalDate?) = value?.toString()
 
     @TypeConverter
-    fun toLocalDate(value: String?): LocalDate? = try {
-        value?.let { LocalDate.parse(it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toLocalDate(value: String?) = value?.let { LocalDate.parse(it) }
 
     // TaskPayload
     @TypeConverter
-    fun fromTaskPayload(value: TaskPayload?): String? = try {
-        value?.let { json.encodeToString(TaskPayload.serializer(), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun fromTaskPayload(value: TaskPayload?) = value?.let { json.encodeToString(it) }
 
     @TypeConverter
-    fun toTaskPayload(value: String?): TaskPayload? = try {
-        value?.let { json.decodeFromString(TaskPayload.serializer(), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toTaskPayload(value: String?) = value?.let { json.decodeFromString<TaskPayload>(it) }
 
     // FlowStatus enum
     @TypeConverter
-    fun fromFlowStatus(value: FlowStatus?): String? = value?.name
+    fun fromFlowStatus(value: FlowStatus?) = value?.name
 
     @TypeConverter
-    fun toFlowStatus(value: String?): FlowStatus? = try {
-        value?.let { FlowStatus.valueOf(it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toFlowStatus(value: String?) = value?.let { FlowStatus.valueOf(it) }
 
     // LifeAreaSharedInfo
     @TypeConverter
-    fun fromLifeAreaSharedInfo(value: LifeAreaSharedInfo?): String? = try {
-        value?.let { json.encodeToString(LifeAreaSharedInfo.serializer(), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun fromLifeAreaSharedInfo(value: LifeAreaSharedInfo?) = value?.let { json.encodeToString(it) }
 
     @TypeConverter
-    fun toLifeAreaSharedInfo(value: String?): LifeAreaSharedInfo? = try {
-        value?.let { json.decodeFromString(LifeAreaSharedInfo.serializer(), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toLifeAreaSharedInfo(value: String?) = value?.let { json.decodeFromString<LifeAreaSharedInfo>(it) }
 
     // List<String>
     @TypeConverter
-    fun fromStringList(value: List<String>?): String? = try {
-        value?.let { json.encodeToString(List.serializer(String.serializer()), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun fromStringList(value: List<String>?) = value?.let { json.encodeToString(it) }
 
     @TypeConverter
-    fun toStringList(value: String?): List<String>? = try {
-        value?.let { json.decodeFromString(List.serializer(String.serializer()), it) }
-    } catch (e: Exception) {
-        null
-    }
+    fun toStringList(value: String?) = value?.let { json.decodeFromString<List<String>>(it) }
+
 }
