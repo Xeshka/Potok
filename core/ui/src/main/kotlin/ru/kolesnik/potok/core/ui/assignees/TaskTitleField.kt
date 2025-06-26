@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -13,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -23,9 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.kolesnik.potok.core.designsystem.AppTheme
-
-private val inputFieldColor = Color(0xFFF8F9FA)
+import ru.kolesnik.potok.core.designsystem.theme.AppTheme
+import ru.kolesnik.potok.core.ui.getInputFieldBackgroundColor
 
 @Composable
 fun TaskTitleField(
@@ -34,6 +33,8 @@ fun TaskTitleField(
     focusRequester: FocusRequester,
     focusManager: FocusManager
 ) {
+    val inputFieldColor = getInputFieldBackgroundColor()
+    
     Column {
         OutlinedTextField(
             value = value,
@@ -42,16 +43,24 @@ fun TaskTitleField(
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .focusRequester(focusRequester),
-            placeholder = { Text("Заголовок задачи") },
+            placeholder = { 
+                Text(
+                    "Заголовок задачи",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ) 
+            },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = inputFieldColor,
                 unfocusedContainerColor = inputFieldColor,
                 disabledContainerColor = inputFieldColor,
                 errorContainerColor = inputFieldColor,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             ),
             textStyle = TextStyle(
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface
             ),
             singleLine = false,
             maxLines = 2,
@@ -65,18 +74,22 @@ fun TaskTitleField(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.End,
             fontSize = 12.sp,
-            color = if (value.length > 200) Color.Red else Color.Gray
+            color = if (value.length > 200) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }
 
-@Preview(showBackground = true, name = "Empty Title")
+@Preview(showBackground = true, name = "Light Theme - Empty Title")
 @Composable
-fun TaskTitleFieldPreview_Empty() {
+fun TaskTitleFieldPreview_LightEmpty() {
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskTitleField(
             value = "",
             onValueChange = {},
@@ -86,14 +99,30 @@ fun TaskTitleFieldPreview_Empty() {
     }
 }
 
-@Preview(showBackground = true, name = "Filled Title")
+@Preview(showBackground = true, name = "Dark Theme - Empty Title")
 @Composable
-fun TaskTitleFieldPreview_Filled() {
+fun TaskTitleFieldPreview_DarkEmpty() {
+    val focusManager = LocalFocusManager.current
+    val focusRequester = FocusRequester()
+
+    AppTheme(darkTheme = false) {
+        TaskTitleField(
+            value = "",
+            onValueChange = {},
+            focusRequester = focusRequester,
+            focusManager = focusManager
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Light Theme - Filled Title")
+@Composable
+fun TaskTitleFieldPreview_LightFilled() {
     val text = "Важная задача с нормальным заголовком"
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskTitleField(
             value = text,
             onValueChange = {},
@@ -103,39 +132,19 @@ fun TaskTitleFieldPreview_Filled() {
     }
 }
 
-@Preview(showBackground = true, name = "Overlimit Title")
+@Preview(showBackground = true, name = "Dark Theme - Filled Title")
 @Composable
-fun TaskTitleFieldPreview_Overlimit() {
-    val text = "a".repeat(201)
+fun TaskTitleFieldPreview_DarkFilled() {
+    val text = "Важная задача с нормальным заголовком"
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    AppTheme {
+    AppTheme(darkTheme = true) {
         TaskTitleField(
             value = text,
             onValueChange = {},
             focusRequester = focusRequester,
             focusManager = focusManager
         )
-    }
-}
-
-@Preview(showBackground = true, name = "Focused Preview")
-@Composable
-fun TaskTitleFieldPreview_Focused() {
-    val focusManager = LocalFocusManager.current
-    val focusRequester = FocusRequester()
-
-    AppTheme {
-        TaskTitleField(
-            value = "Заголовок с фокусом",
-            onValueChange = {},
-            focusRequester = focusRequester,
-            focusManager = focusManager
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
     }
 }

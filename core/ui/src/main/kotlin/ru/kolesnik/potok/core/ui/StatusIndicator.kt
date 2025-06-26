@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,7 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import ru.kolesnik.potok.core.designsystem.AppTheme
+import ru.kolesnik.potok.core.designsystem.theme.AppTheme
 
 @Composable
 fun StatusIndicator(
@@ -26,8 +27,11 @@ fun StatusIndicator(
             .size(20.dp)
             .clip(CircleShape)
             .background(
-                if (complete) Color.Green.copy(alpha = 1f)
-                else Color.LightGray
+                if (complete) {
+                    getStatusColor(true)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -42,18 +46,34 @@ fun StatusIndicator(
     }
 }
 
-@Preview(name = "Complete", showBackground = true)
+@Preview(name = "Light Theme - Complete", showBackground = true)
 @Composable
-fun StatusIndicatorPreview_Complete() {
-    AppTheme {
+fun StatusIndicatorPreview_LightComplete() {
+    AppTheme(darkTheme = false) {
         StatusIndicator(complete = true)
     }
 }
 
-@Preview(name = "Incomplete", showBackground = true)
+@Preview(name = "Light Theme - Incomplete", showBackground = true)
 @Composable
-fun StatusIndicatorPreview_Incomplete() {
-    AppTheme {
+fun StatusIndicatorPreview_LightIncomplete() {
+    AppTheme(darkTheme = false) {
+        StatusIndicator(complete = false)
+    }
+}
+
+@Preview(name = "Dark Theme - Complete", showBackground = true)
+@Composable
+fun StatusIndicatorPreview_DarkComplete() {
+    AppTheme(darkTheme = true) {
+        StatusIndicator(complete = true)
+    }
+}
+
+@Preview(name = "Dark Theme - Incomplete", showBackground = true)
+@Composable
+fun StatusIndicatorPreview_DarkIncomplete() {
+    AppTheme(darkTheme = true) {
         StatusIndicator(complete = false)
     }
 }

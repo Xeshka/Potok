@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.kolesnik.potok.core.designsystem.AppTheme
+import ru.kolesnik.potok.core.designsystem.theme.AppTheme
 import ru.kolesnik.potok.core.model.Employee
 import ru.kolesnik.potok.core.model.TaskAssignee
 import ru.kolesnik.potok.core.ui.StatusIndicator
@@ -34,13 +35,15 @@ fun AssigneeItem(
         Icon(
             imageVector = Icons.Default.Person,
             contentDescription = null,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = employees.firstOrNull { it.employeeId == assignee.employeeId }?.getFIO()
                 ?: assignee.employeeId,
             modifier = Modifier.padding(start = 16.dp),
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         StatusIndicator(
@@ -53,10 +56,33 @@ fun AssigneeItem(
 fun Employee.getFIO() =
     "$lastName ${firstName.first()}.${middleName?.let { "${it.first()}." } ?: ""}"
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Light Theme - Assignee List")
 @Composable
-fun AssigneeListPreview() {
-    AppTheme {
+fun AssigneeListPreview_Light() {
+    AppTheme(darkTheme = false) {
+        Column {
+            AssigneeItem(
+                assignee = TaskAssignee(
+                    employeeId = "user_1",
+                    complete = true
+                ),
+                employees = emptyList()
+            )
+            AssigneeItem(
+                assignee = TaskAssignee(
+                    employeeId = "user_2",
+                    complete = false
+                ),
+                employees = emptyList()
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Theme - Assignee List")
+@Composable
+fun AssigneeListPreview_Dark() {
+    AppTheme(darkTheme = true) {
         Column {
             AssigneeItem(
                 assignee = TaskAssignee(

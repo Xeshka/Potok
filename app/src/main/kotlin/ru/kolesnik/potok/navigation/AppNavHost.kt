@@ -1,26 +1,20 @@
 package ru.kolesnik.potok.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
-import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaBaseRoute
+import androidx.navigation.compose.rememberNavController
+import ru.kolesnik.potok.feature.lifearea.navigation.LifeAreaRoute
 import ru.kolesnik.potok.feature.lifearea.navigation.mainSection
 import ru.kolesnik.potok.feature.task.navigation.navigateToTask
 import ru.kolesnik.potok.feature.task.navigation.taskSection
-import ru.kolesnik.potok.ui.AppState
 
 @Composable
-fun AppNavHost(
-    appState: AppState,
-    modifier: Modifier = Modifier,
-    startDestination: Any = LifeAreaBaseRoute,
-) {
-    val navController = appState.navController
-    
+fun AppNavHost() {
+    val navController = rememberNavController()
+
     NavHost(
         navController = navController,
-        startDestination = startDestination,
-        modifier = modifier,
+        startDestination = LifeAreaRoute
     ) {
         mainSection(
             onTaskClick = { taskId ->

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.outlined.FilePresent
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.kolesnik.potok.core.designsystem.AppTheme
+import ru.kolesnik.potok.core.designsystem.theme.AppTheme
 
 @Composable
 fun MessageCounter(
@@ -72,87 +73,78 @@ fun MessageCounter(
     }
 }
 
-@Preview(showBackground = true, name = "Employees Counter")
+@Preview(showBackground = true, name = "Light Theme - Employees Counter")
 @Composable
-fun MessageCounterPreview_Employees() {
-    AppTheme {
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        MessageCounter(
-            count = 3,
-            color = Color.Gray,
-            counterType = CounterType.EMPLOYEES
-        )
-        MessageCounter(
-            count = 5,
-            color = Color(0xFF4CAF50),
-            counterType = CounterType.EMPLOYEES
-        )
-    }
-        }
-}
-
-@Preview(showBackground = true, name = "Files Counter")
-@Composable
-fun MessageCounterPreview_Files() {
-    AppTheme {
-
+fun MessageCounterPreview_LightEmployees() {
+    AppTheme(darkTheme = false) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MessageCounter(
-                count = 2,
-                color = Color.Blue,
-                counterType = CounterType.FILES
+                count = 3,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                counterType = CounterType.EMPLOYEES
             )
             MessageCounter(
-                count = 0,
-                color = Color.Red,
-                counterType = CounterType.FILES
+                count = 5,
+                color = getStatusColor(true),
+                counterType = CounterType.EMPLOYEES
             )
         }
     }
 }
 
-@Preview(showBackground = true, name = "Comments Counter")
+@Preview(showBackground = true, name = "Dark Theme - Employees Counter")
 @Composable
-fun MessageCounterPreview_Comments() {
-    AppTheme {
-
+fun MessageCounterPreview_DarkEmployees() {
+    AppTheme(darkTheme = true) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MessageCounter(
-                count = 15,
-                color = Color(0xFF9C27B0),
-                counterType = CounterType.COMMENTS
+                count = 3,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                counterType = CounterType.EMPLOYEES
             )
             MessageCounter(
-                count = 99,
-                color = Color(0xFFFF9800),
-                counterType = CounterType.COMMENTS
+                count = 5,
+                color = getStatusColor(true),
+                counterType = CounterType.EMPLOYEES
             )
         }
     }
 }
 
-@Preview(showBackground = true, name = "All Counters")
+@Preview(showBackground = true, name = "Light Theme - All Counters")
 @Composable
-fun MessageCounterPreview_All() {
-    AppTheme {
+fun MessageCounterPreview_LightAll() {
+    AppTheme(darkTheme = false) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(16.dp)
         ) {
-            MessageCounter(3, Color.Gray, CounterType.EMPLOYEES)
-            MessageCounter(2, Color.Blue, CounterType.FILES)
-            MessageCounter(15, Color(0xFF9C27B0), CounterType.COMMENTS)
+            MessageCounter(3, MaterialTheme.colorScheme.onSurfaceVariant, CounterType.EMPLOYEES)
+            MessageCounter(2, MaterialTheme.colorScheme.primary, CounterType.FILES)
+            MessageCounter(15, MaterialTheme.colorScheme.tertiary, CounterType.COMMENTS)
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Theme - All Counters")
+@Composable
+fun MessageCounterPreview_DarkAll() {
+    AppTheme(darkTheme = true) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(16.dp)
+        ) {
+            MessageCounter(3, MaterialTheme.colorScheme.onSurfaceVariant, CounterType.EMPLOYEES)
+            MessageCounter(2, MaterialTheme.colorScheme.primary, CounterType.FILES)
+            MessageCounter(15, MaterialTheme.colorScheme.tertiary, CounterType.COMMENTS)
         }
     }
 }
