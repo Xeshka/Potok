@@ -7,6 +7,8 @@ import ru.kolesnik.potok.core.database.dao.LifeFlowDao
 import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
 import ru.kolesnik.potok.core.data.util.toEntity
+import ru.kolesnik.potok.core.data.util.toDomainModel
+import ru.kolesnik.potok.core.data.util.NetworkMappers.toDomainModel
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,29 +23,38 @@ class SyncRepositoryImpl @Inject constructor(
 
     override suspend fun syncAll(): Result<Unit> {
         return try {
-            val fullData = syncFullDataSource.gtFullNew()
+            // ✅ Получаем DTO из сетевого слоя
+            val lifeAreaDTOs = syncFullDataSource.gtFullNew()
             
-            // Синхронизируем области жизни
-            val lifeAreaEntities = fullData.map { it.toEntity() }
+            // ✅ Преобразуем DTO в доменные модели в слое данных
+            val lifeAreas = lifeAreaDTOs.map { dto ->
+                dto.toDomainModel()
+            }
+            
+            // ✅ Преобразуем доменные модели в Entity для базы данных
+            val lifeAreaEntities = lifeAreas.map { it.toEntity() }
             lifeAreaDao.insertAll(lifeAreaEntities)
             
-            // Синхронизируем потоки
-            fullData.forEach { lifeArea ->
-                lifeArea.flows?.let { flows ->
+            // ✅ Синхронизируем потоки
+            lifeAreaDTOs.forEach { lifeAreaDTO ->
+                lifeAreaDTO.flows?.let { flowDTOs ->
+                    val flows = flowDTOs.map { it.toDomainModel() }
                     val flowEntities = flows.map { it.toEntity() }
                     lifeFlowDao.insertAll(flowEntities)
                     
-                    // Синхронизируем задачи
-                    flows.forEach { flow ->
-                        flow.tasks?.let { tasks ->
+                    // ✅ Синхронизируем задачи
+                    flowDTOs.forEach { flowDTO ->
+                        flowDTO.tasks?.let { taskDTOs ->
+                            val tasks = taskDTOs.map { it.toDomainModel() }
                             val taskEntities = tasks.map { it.toEntity() }
                             taskDao.insertAll(taskEntities)
                             
-                            // Синхронизируем назначенных
-                            tasks.forEach { task ->
-                                task.assignees?.forEach { assignee ->
+                            // ✅ Синхронизируем назначенных
+                            taskDTOs.forEach { taskDTO ->
+                                taskDTO.assignees?.forEach { assigneeDTO ->
+                                    val assignee = assigneeDTO.toDomainModel()
                                     val assigneeEntity = ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity(
-                                        taskCardId = task.cardId,
+                                        taskCardId = taskDTO.cardId,
                                         employeeId = assignee.employeeId,
                                         complete = assignee.complete
                                     )
