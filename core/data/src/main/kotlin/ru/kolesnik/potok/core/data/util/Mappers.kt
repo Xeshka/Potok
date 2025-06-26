@@ -3,18 +3,32 @@ package ru.kolesnik.potok.core.data.util
 import ru.kolesnik.potok.core.database.entitys.*
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
-import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
+import ru.kolesnik.potok.core.network.model.potok.*
 import java.time.OffsetDateTime
 import java.util.*
 
-// Network DTO to Entity mappers
+// Network DTO -> Entity mappers
 fun LifeAreaDTO.toEntity(): LifeAreaEntity {
     return LifeAreaEntity(
         id = this.id,
         name = this.name,
         description = this.description,
-        createdAt = OffsetDateTime.now(),
-        updatedAt = OffsetDateTime.now()
+        color = this.color,
+        icon = this.icon,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+    )
+}
+
+fun LifeFlowDTO.toEntity(): LifeFlowEntity {
+    return LifeFlowEntity(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        lifeAreaId = this.lifeAreaId,
+        status = this.status?.name ?: "ACTIVE",
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
     )
 }
 
@@ -23,54 +37,52 @@ fun TaskRs.toEntity(): TaskEntity {
         id = this.id,
         title = this.title,
         description = this.description,
-        lifeFlowId = this.lifeFlowId,
         status = this.status,
         priority = this.priority,
-        deadline = this.deadline?.let { OffsetDateTime.parse(it) },
         isImportant = this.isImportant ?: false,
-        createdAt = this.createdAt?.let { OffsetDateTime.parse(it) } ?: OffsetDateTime.now(),
-        updatedAt = this.updatedAt?.let { OffsetDateTime.parse(it) } ?: OffsetDateTime.now(),
-        assigneeIds = this.assigneeIds ?: emptyList()
+        deadline = this.deadline,
+        lifeAreaId = this.lifeAreaId,
+        lifeFlowId = this.lifeFlowId,
+        assigneeIds = this.assigneeIds ?: emptyList(),
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now(),
+        completedAt = this.completedAt
     )
 }
 
-fun ChecklistRq.toEntity(): ChecklistTaskEntity {
-    return ChecklistTaskEntity(
-        id = UUID.randomUUID().toString(),
-        taskId = this.taskId,
-        title = this.title,
-        isCompleted = false,
-        createdAt = OffsetDateTime.now(),
-        updatedAt = OffsetDateTime.now()
-    )
-}
-
-fun TaskCommentRq.toEntity(): CommentEntity {
+fun TaskCommentRs.toEntity(taskId: UUID): CommentEntity {
     return CommentEntity(
-        id = UUID.randomUUID().toString(),
-        taskId = this.taskId,
-        text = this.text,
-        authorId = this.authorId ?: "",
-        createdAt = OffsetDateTime.now(),
-        updatedAt = OffsetDateTime.now()
-    )
-}
-
-fun EmployeeResponse.toEntity(): Employee {
-    return Employee(
         id = this.id,
-        name = this.name,
-        email = this.email,
-        avatar = this.avatar
+        taskId = taskId,
+        authorId = this.authorId,
+        content = this.content,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
     )
 }
 
-// Entity to Model mappers
+fun ChecklistRs.toEntity(taskId: UUID): ChecklistTaskEntity {
+    return ChecklistTaskEntity(
+        id = this.id,
+        taskId = taskId,
+        title = this.title,
+        isCompleted = this.isCompleted ?: false,
+        position = this.position ?: 0,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+    )
+}
+
+// Entity -> Model mappers
 fun LifeAreaEntity.toModel(): LifeArea {
     return LifeArea(
         id = this.id,
         name = this.name,
-        description = this.description
+        description = this.description,
+        color = this.color,
+        icon = this.icon,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
 
@@ -80,7 +92,9 @@ fun LifeFlowEntity.toModel(): LifeFlow {
         name = this.name,
         description = this.description,
         lifeAreaId = this.lifeAreaId,
-        status = this.status
+        status = this.status,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
 
@@ -89,14 +103,27 @@ fun TaskEntity.toModel(): Task {
         id = this.id,
         title = this.title,
         description = this.description,
-        lifeFlowId = this.lifeFlowId,
         status = this.status,
         priority = this.priority,
-        deadline = this.deadline?.toString(),
         isImportant = this.isImportant,
-        createdAt = this.createdAt.toString(),
-        updatedAt = this.updatedAt.toString(),
-        assigneeIds = this.assigneeIds
+        deadline = this.deadline,
+        lifeAreaId = this.lifeAreaId,
+        lifeFlowId = this.lifeFlowId,
+        assigneeIds = this.assigneeIds,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        completedAt = this.completedAt
+    )
+}
+
+fun CommentEntity.toModel(): TaskComment {
+    return TaskComment(
+        id = this.id,
+        taskId = this.taskId,
+        authorId = this.authorId,
+        content = this.content,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
 
@@ -106,44 +133,156 @@ fun ChecklistTaskEntity.toModel(): ChecklistTask {
         taskId = this.taskId,
         title = this.title,
         isCompleted = this.isCompleted,
-        createdAt = this.createdAt.toString(),
-        updatedAt = this.updatedAt.toString()
+        position = this.position,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
 
-fun CommentEntity.toModel(): TaskComment {
-    return TaskComment(
+// Network DTO -> Model mappers (for search results without saving to DB)
+fun LifeAreaDTO.toModel(): LifeArea {
+    return LifeArea(
         id = this.id,
-        taskId = this.taskId,
-        text = this.text,
-        authorId = this.authorId,
-        createdAt = this.createdAt.toString(),
-        updatedAt = this.updatedAt.toString()
+        name = this.name,
+        description = this.description,
+        color = this.color,
+        icon = this.icon,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
     )
 }
 
-// Network DTO to Model mappers (for search results that don't need to be stored)
+fun LifeFlowDTO.toModel(): LifeFlow {
+    return LifeFlow(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        lifeAreaId = this.lifeAreaId,
+        status = this.status?.name ?: "ACTIVE",
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+    )
+}
+
 fun TaskRs.toModel(): Task {
     return Task(
         id = this.id,
         title = this.title,
         description = this.description,
-        lifeFlowId = this.lifeFlowId,
         status = this.status,
         priority = this.priority,
-        deadline = this.deadline,
         isImportant = this.isImportant ?: false,
-        createdAt = this.createdAt ?: "",
-        updatedAt = this.updatedAt ?: "",
-        assigneeIds = this.assigneeIds ?: emptyList()
+        deadline = this.deadline,
+        lifeAreaId = this.lifeAreaId,
+        lifeFlowId = this.lifeFlowId,
+        assigneeIds = this.assigneeIds ?: emptyList(),
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now(),
+        completedAt = this.completedAt
     )
 }
 
+fun TaskCommentRs.toModel(): TaskComment {
+    return TaskComment(
+        id = this.id,
+        taskId = UUID.randomUUID(), // Временное значение, должно быть передано извне
+        authorId = this.authorId,
+        content = this.content,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+    )
+}
+
+fun ChecklistRs.toModel(): ChecklistTask {
+    return ChecklistTask(
+        id = this.id,
+        taskId = UUID.randomUUID(), // Временное значение, должно быть передано извне
+        title = this.title,
+        isCompleted = this.isCompleted ?: false,
+        position = this.position ?: 0,
+        createdAt = this.createdAt ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt ?: OffsetDateTime.now()
+    )
+}
+
+// Employee mappers
 fun EmployeeResponse.toModel(): Employee {
     return Employee(
         id = this.id,
         name = this.name,
         email = this.email,
-        avatar = this.avatar
+        avatar = this.avatar,
+        position = this.position,
+        department = this.department
+    )
+}
+
+// Model -> Request mappers
+fun Task.toCreateRequest(): TaskRs {
+    return TaskRs(
+        id = this.id,
+        title = this.title,
+        description = this.description,
+        status = this.status,
+        priority = this.priority,
+        isImportant = this.isImportant,
+        deadline = this.deadline,
+        lifeAreaId = this.lifeAreaId,
+        lifeFlowId = this.lifeFlowId,
+        assigneeIds = this.assigneeIds,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        completedAt = this.completedAt
+    )
+}
+
+fun TaskComment.toCreateRequest(): TaskCommentRq {
+    return TaskCommentRq(
+        id = this.id,
+        taskId = this.taskId,
+        authorId = this.authorId,
+        content = this.content,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
+    )
+}
+
+fun ChecklistTask.toCreateRequest(): ChecklistRq {
+    return ChecklistRq(
+        id = this.id,
+        taskId = this.taskId,
+        title = this.title,
+        isCompleted = this.isCompleted,
+        position = this.position,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
+    )
+}
+
+fun LifeArea.toCreateRequest(): LifeAreaDTO {
+    return LifeAreaDTO(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        color = this.color,
+        icon = this.icon,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
+    )
+}
+
+fun LifeFlow.toCreateRequest(): LifeFlowDTO {
+    return LifeFlowDTO(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        lifeAreaId = this.lifeAreaId,
+        status = try { 
+            FlowStatus.valueOf(this.status) 
+        } catch (e: IllegalArgumentException) { 
+            FlowStatus.ACTIVE 
+        },
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt
     )
 }
