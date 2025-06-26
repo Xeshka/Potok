@@ -1,51 +1,72 @@
 package ru.kolesnik.potok.core.datasource.repository
 
 import ru.kolesnik.potok.core.data.repository.FullProjectRepository
+import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.database.AppDatabase
-import ru.kolesnik.potok.core.model.extensions.toEntity
 import ru.kolesnik.potok.core.network.SyncFullDataSource
 import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
+import java.util.UUID
 import javax.inject.Inject
 
-class FullProjectRepositoryImpl @Inject constructor(
+internal class FullProjectRepositoryImpl @Inject constructor(
     private val syncDataSource: SyncFullDataSource,
     private val database: AppDatabase
 ) : FullProjectRepository {
 
     override suspend fun sync() {
         try {
-            val fullData = syncDataSource.gtFullNew()
+            val networkData = syncDataSource.getFull()
             
-            // Очищаем базу данных
+            // Clear all data
             database.clearAllTables()
             
-            // Сохраняем данные в базу
-            fullData.forEach { lifeAreaDto ->
-                val lifeAreaEntity = lifeAreaDto.toEntity()
-                database.lifeAreaDao().insert(lifeAreaEntity)
+            // Sync life areas
+            val lifeAreaEntities = networkData.map { it.toEntity() }
+            database.lifeAreaDao().insertAll(lifeAreaEntities)
+            
+            // Sync flows and tasks for each area
+            networkData.forEach { networkArea ->
+                val areaId = UUID.fromString(networkArea.id)
                 
-                lifeAreaDto.flows?.forEach { flowDto ->
-                    val flowEntity = flowDto.toEntity()
-                    database.lifeFlowDao().insert(flowEntity)
+                // Sync flows
+                networkArea.flows?.let { flows ->
+                    val flowEntities = flows.map { it.toEntity() }
+                    database.lifeFlowDao().insertAll(flowEntities)
                     
-                    flowDto.tasks?.forEach { taskDto ->
-                        val taskEntity = taskDto.toEntity()
-                        database.taskDao().insert(taskEntity)
-                        
-                        taskDto.assignees?.forEach { assigneeDto ->
-                            val assigneeEntity = assigneeDto.toEntity(taskEntity.cardId)
-                            database.taskAssigneeDao().insert(assigneeEntity)
-                        }
-                        
-                        taskDto.checkList?.forEach { checklistDto ->
-                            val checklistEntity = checklistDto.toEntity(taskEntity.cardId)
-                            database.checklistTaskDao().insert(checklistEntity)
+                    // Sync tasks for each flow
+                    flows.forEach { flow ->
+                        val flowId = UUID.fromString(flow.id)
+                        flow.tasks?.let { tasks ->
+                            val taskEntities = tasks.map { task ->
+                                task.toEntity().copy(
+                                    lifeAreaId = areaId,
+                                    flowId = flowId
+                                )
+                            }
+                            database.taskDao().insertAll(taskEntities)
+                            
+                            // Sync assignees and checklist for each task
+                            tasks.forEach { networkTask ->
+                                val taskId = UUID.fromString(networkTask.id)
+                                
+                                // Sync assignees
+                                networkTask.assignees?.let { assignees ->
+                                    val assigneeEntities = assignees.map { it.toEntity(taskId) }
+                                    database.taskAssigneeDao().insertAll(assigneeEntities)
+                                }
+                                
+                                // Sync checklist
+                                networkTask.checkList?.let { checklist ->
+                                    val checklistEntities = checklist.map { it.toEntity(taskId) }
+                                    database.checklistTaskDao().insertAll(checklistEntities)
+                                }
+                            }
                         }
                     }
                 }
             }
         } catch (e: Exception) {
-            throw Exception("Ошибка синхронизации: ${e.message}", e)
+            throw Exception("Sync failed: ${e.message}", e)
         }
     }
 

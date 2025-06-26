@@ -2,7 +2,6 @@ package ru.kolesnik.potok.core.database.entitys
 
 import androidx.room.TypeConverter
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import ru.kolesnik.potok.core.model.LifeAreaSharedInfo
 import ru.kolesnik.potok.core.model.TaskPayload
