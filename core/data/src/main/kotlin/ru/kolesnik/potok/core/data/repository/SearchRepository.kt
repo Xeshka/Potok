@@ -1,19 +1,10 @@
 package ru.kolesnik.potok.core.data.repository
 
-import ru.kolesnik.potok.core.network.api.SearchApi
-import ru.kolesnik.potok.core.network.repository.SearchRepository
-import javax.inject.Inject
+import ru.kolesnik.potok.core.model.Task
+import ru.kolesnik.potok.core.model.Employee
+import ru.kolesnik.potok.core.network.result.Result
 
-class SearchRepositoryImpl @Inject constructor(
-    private val api: SearchApi
-) : SearchRepository {
-
-    override suspend fun search(query: String): List<String> {
-        return try {
-            val result = api.search(query)
-            result.tasks.map { it.title }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
+interface SearchRepository {
+    suspend fun searchTasks(query: String): Result<List<Task>>
+    suspend fun searchEmployees(query: String): Result<List<Employee>>
 }

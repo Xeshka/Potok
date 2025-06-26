@@ -2,9 +2,9 @@ package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import ru.kolesnik.potok.core.database.dao.LifeAreaDao
-import ru.kolesnik.potok.core.model.LifeArea
-import ru.kolesnik.potok.core.network.api.LifeAreaApi
+import ru.kolesnik.potok.core.database.dao.LifeFlowDao
+import ru.kolesnik.potok.core.model.LifeFlow
+import ru.kolesnik.potok.core.network.api.LifeFlowApi
 import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
@@ -12,23 +12,29 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LifeAreaRepositoryImpl @Inject constructor(
-    private val lifeAreaApi: LifeAreaApi,
-    private val lifeAreaDao: LifeAreaDao
-) : LifeAreaRepository {
+class LifeFlowRepositoryImpl @Inject constructor(
+    private val lifeFlowApi: LifeFlowApi,
+    private val lifeFlowDao: LifeFlowDao
+) : LifeFlowRepository {
 
-    override fun getLifeAreas(): Flow<List<LifeArea>> {
-        return lifeAreaDao.getAllLifeAreas().map { entities ->
+    override fun getLifeFlows(): Flow<List<LifeFlow>> {
+        return lifeFlowDao.getAllLifeFlows().map { entities ->
             entities.map { it.toModel() }
         }
     }
 
-    override suspend fun syncLifeAreas(): Result<Unit> {
+    override fun getLifeFlowsByArea(lifeAreaId: String): Flow<List<LifeFlow>> {
+        return lifeFlowDao.getLifeFlowsByArea(lifeAreaId).map { entities ->
+            entities.map { it.toModel() }
+        }
+    }
+
+    override suspend fun syncLifeFlows(): Result<Unit> {
         return try {
-            when (val result = lifeAreaApi.getLifeAreas()) {
+            when (val result = lifeFlowApi.getLifeFlows()) {
                 is Result.Success -> {
                     val entities = result.data.map { it.toEntity() }
-                    lifeAreaDao.insertAll(entities)
+                    lifeFlowDao.insertAll(entities)
                     Result.Success(Unit)
                 }
                 is Result.Error -> result
@@ -38,12 +44,12 @@ class LifeAreaRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createLifeArea(name: String, description: String?): Result<LifeArea> {
+    override suspend fun createLifeFlow(name: String, lifeAreaId: String, description: String?): Result<LifeFlow> {
         return try {
-            when (val result = lifeAreaApi.createLifeArea(name, description)) {
+            when (val result = lifeFlowApi.createLifeFlow(name, lifeAreaId, description)) {
                 is Result.Success -> {
                     val entity = result.data.toEntity()
-                    lifeAreaDao.insert(entity)
+                    lifeFlowDao.insert(entity)
                     Result.Success(entity.toModel())
                 }
                 is Result.Error -> result
@@ -53,12 +59,12 @@ class LifeAreaRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateLifeArea(id: String, name: String, description: String?): Result<LifeArea> {
+    override suspend fun updateLifeFlow(id: String, name: String, description: String?): Result<LifeFlow> {
         return try {
-            when (val result = lifeAreaApi.updateLifeArea(id, name, description)) {
+            when (val result = lifeFlowApi.updateLifeFlow(id, name, description)) {
                 is Result.Success -> {
                     val entity = result.data.toEntity()
-                    lifeAreaDao.update(entity)
+                    lifeFlowDao.update(entity)
                     Result.Success(entity.toModel())
                 }
                 is Result.Error -> result
@@ -68,11 +74,11 @@ class LifeAreaRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteLifeArea(id: String): Result<Unit> {
+    override suspend fun deleteLifeFlow(id: String): Result<Unit> {
         return try {
-            when (val result = lifeAreaApi.deleteLifeArea(id)) {
+            when (val result = lifeFlowApi.deleteLifeFlow(id)) {
                 is Result.Success -> {
-                    lifeAreaDao.deleteById(id)
+                    lifeFlowDao.deleteById(id)
                     Result.Success(Unit)
                 }
                 is Result.Error -> result

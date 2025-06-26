@@ -5,34 +5,38 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ru.kolesnik.potok.core.data.repository.*
-import ru.kolesnik.potok.core.network.repository.*
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
 
     @Binds
-    @Singleton
     abstract fun bindLifeAreaRepository(
-        impl: LifeAreaRepositoryImpl
+        lifeAreaRepositoryImpl: LifeAreaRepositoryImpl
     ): LifeAreaRepository
 
     @Binds
-    @Singleton
-    abstract fun bindFlowRepository(
-        impl: FlowRepositoryImpl
-    ): FlowRepository
+    abstract fun bindLifeFlowRepository(
+        lifeFlowRepositoryImpl: LifeFlowRepositoryImpl
+    ): LifeFlowRepository
 
     @Binds
-    @Singleton
     abstract fun bindTaskRepository(
-        impl: TaskRepositoryImpl
+        taskRepositoryImpl: TaskRepositoryImpl
     ): TaskRepository
 
     @Binds
-    @Singleton
-    abstract fun bindFullProjectRepository(
-        impl: FullProjectRepositoryImpl
-    ): FullProjectRepository
+    abstract fun bindChecklistRepository(
+        checklistRepositoryImpl: ChecklistRepositoryImpl
+    ): ChecklistRepository
+
+    @Binds
+    abstract fun bindSearchRepository(
+        searchRepositoryImpl: SearchRepositoryImpl
+    ): SearchRepository
+
+    @Binds
+    abstract fun bindSyncRepository(
+        syncRepositoryImpl: SyncRepositoryImpl
+    ): SyncRepository
 }

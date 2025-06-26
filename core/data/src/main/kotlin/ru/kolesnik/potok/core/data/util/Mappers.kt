@@ -4,281 +4,146 @@ import ru.kolesnik.potok.core.database.entitys.*
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
 import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
-import ru.kolesnik.potok.core.network.model.potok.*
-import java.util.UUID
+import java.time.OffsetDateTime
+import java.util.*
 
-// DTO to Entity mappers
-fun LifeAreaDTO.toEntity(): LifeAreaEntity = LifeAreaEntity(
-    id = id,
-    title = title,
-    style = style,
-    tagsId = tagsId,
-    placement = placement,
-    isDefault = isDefault,
-    sharedInfo = sharedInfo,
-    isTheme = isTheme,
-    onlyPersonal = onlyPersonal
-)
-
-fun LifeFlowDTO.toEntity(): LifeFlowEntity = LifeFlowEntity(
-    id = id,
-    areaId = areaId,
-    title = title,
-    style = style,
-    placement = placement,
-    status = status
-)
-
-fun TaskRs.toEntity(): TaskEntity = TaskEntity(
-    cardId = UUID.fromString(id),
-    externalId = id,
-    internalId = internalId,
-    title = title,
-    subtitle = subtitle,
-    mainOrder = mainOrder,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    payload = payload.toModelPayload(),
-    lifeAreaId = payload.lifeAreaId,
-    flowId = null, // Will be set separately
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    commentCount = commentCount,
-    attachmentCount = attachmentCount
-)
-
-fun TaskAssigneeRs.toEntity(taskId: UUID): TaskAssigneeEntity = TaskAssigneeEntity(
-    taskCardId = taskId,
-    employeeId = employeeId,
-    complete = complete
-)
-
-fun ChecklistTaskDTO.toEntity(taskId: UUID): ChecklistTaskEntity = ChecklistTaskEntity(
-    id = id,
-    taskCardId = taskId,
-    title = title,
-    done = done ?: false,
-    placement = placement ?: 0,
-    responsibles = responsibles,
-    deadline = deadline
-)
-
-fun TaskCommentDTO.toEntity(taskId: UUID): TaskCommentEntity = TaskCommentEntity(
-    id = id,
-    taskCardId = taskId,
-    parentCommentId = parentCommentId,
-    owner = owner,
-    text = text,
-    createdAt = createdAt,
-    updatedAt = updatedAt
-)
-
-// Network to Entity mappers
-fun NetworkLifeArea.toEntity(): LifeAreaEntity = LifeAreaEntity(
-    id = UUID.fromString(id),
-    title = title,
-    style = style,
-    tagsId = tagsId,
-    placement = placement,
-    isDefault = isDefault,
-    sharedInfo = null, // Convert if needed
-    isTheme = isTheme,
-    onlyPersonal = onlyPersonal
-)
-
-fun NetworkTask.toEntity(): TaskEntity = TaskEntity(
-    cardId = UUID.fromString(id),
-    externalId = id,
-    internalId = internalId,
-    title = title,
-    subtitle = subtitle,
-    mainOrder = mainOrder,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    payload = payload.toModelPayload(),
-    lifeAreaId = lifeAreaId?.let { UUID.fromString(it) },
-    flowId = flowId?.let { UUID.fromString(it) },
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    commentCount = commentCount,
-    attachmentCount = attachmentCount
-)
-
-// Entity to Domain mappers
-fun LifeAreaEntity.toDomain(): LifeArea = LifeArea(
-    id = id,
-    title = title,
-    style = style,
-    tagsId = tagsId,
-    placement = placement,
-    isDefault = isDefault,
-    isTheme = isTheme,
-    shared = sharedInfo?.toDomain()
-)
-
-fun LifeFlowEntity.toDomain(): LifeFlow = LifeFlow(
-    id = id.toString(),
-    areaId = areaId.toString(),
-    title = title,
-    style = style,
-    placement = placement,
-    status = status ?: ru.kolesnik.potok.core.model.FlowStatus.NEW
-)
-
-fun TaskEntity.toDomain(): Task = Task(
-    id = externalId,
-    title = title,
-    subtitle = subtitle,
-    mainOrder = mainOrder,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    payload = payload,
-    internalId = internalId,
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    lifeAreaId = lifeAreaId,
-    flowId = flowId
-)
-
-fun TaskEntity.toTaskMain(): TaskMain = TaskMain(
-    id = externalId ?: cardId.toString(),
-    title = title,
-    source = source,
-    taskOwner = taskOwner,
-    creationDate = creationDate,
-    deadline = payload.deadline,
-    internalId = internalId,
-    lifeAreaPlacement = lifeAreaPlacement,
-    flowPlacement = flowPlacement,
-    lifeAreaId = lifeAreaId,
-    flowId = flowId
-)
-
-fun TaskAssigneeEntity.toDomain(): TaskAssignee = TaskAssignee(
-    employeeId = employeeId,
-    complete = complete
-)
-
-fun ChecklistTaskEntity.toDomain(): ChecklistTask = ChecklistTask(
-    id = id,
-    title = title,
-    done = done ?: false,
-    placement = placement ?: 0,
-    responsibles = responsibles ?: emptyList(),
-    deadline = deadline
-)
-
-fun TaskCommentEntity.toDomain(): TaskComment = TaskComment(
-    id = id,
-    parentCommentId = parentCommentId,
-    owner = owner,
-    text = text,
-    createdAt = createdAt,
-    updatedAt = updatedAt
-)
-
-// Helper mappers
-fun EmployeeResponse.toDomain(): Employee = Employee(
-    employeeNumber = employeeNumber,
-    timezone = timezone,
-    terBank = terBank,
-    employeeId = employeeId,
-    lastName = lastName,
-    firstName = firstName,
-    middleName = middleName,
-    position = position,
-    mainEmail = mainEmail,
-    avatar = avatar
-)
-
-fun LifeAreaSharedInfo.toDomain(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo = 
-    ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-        areaId = UUID.randomUUID(), // This should be set properly
-        owner = owner,
-        recipients = recipients
+// Network DTO to Entity mappers
+fun LifeAreaDTO.toEntity(): LifeAreaEntity {
+    return LifeAreaEntity(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        createdAt = OffsetDateTime.now(),
+        updatedAt = OffsetDateTime.now()
     )
+}
 
-fun ru.kolesnik.potok.core.network.model.api.TaskPayload.toModelPayload(): ru.kolesnik.potok.core.model.TaskPayload = 
-    ru.kolesnik.potok.core.model.TaskPayload(
-        title = title,
-        source = source,
-        onMainPage = onMainPage,
-        deadline = deadline,
-        lifeArea = lifeArea,
-        lifeAreaId = lifeAreaId,
-        subtitle = subtitle,
-        userEdit = userEdit,
-        assignees = assignees,
-        important = important,
-        messageId = messageId,
-        fullMessage = fullMessage,
-        description = description,
-        priority = priority,
-        userChangeAssignee = userChangeAssignee,
-        organization = organization,
-        shortMessage = shortMessage,
-        externalId = externalId,
-        relatedAssignment = relatedAssignment,
-        meanSource = meanSource,
-        id = id
+fun TaskRs.toEntity(): TaskEntity {
+    return TaskEntity(
+        id = this.id,
+        title = this.title,
+        description = this.description,
+        lifeFlowId = this.lifeFlowId,
+        status = this.status,
+        priority = this.priority,
+        deadline = this.deadline?.let { OffsetDateTime.parse(it) },
+        isImportant = this.isImportant ?: false,
+        createdAt = this.createdAt?.let { OffsetDateTime.parse(it) } ?: OffsetDateTime.now(),
+        updatedAt = this.updatedAt?.let { OffsetDateTime.parse(it) } ?: OffsetDateTime.now(),
+        assigneeIds = this.assigneeIds ?: emptyList()
     )
+}
 
-fun NetworkTaskPayload.toModelPayload(): ru.kolesnik.potok.core.model.TaskPayload = 
-    ru.kolesnik.potok.core.model.TaskPayload(
-        title = title,
-        source = source,
-        onMainPage = onMainPage,
-        deadline = deadline,
-        lifeArea = lifeArea,
-        lifeAreaId = lifeAreaId?.let { UUID.fromString(it) },
-        subtitle = subtitle,
-        userEdit = userEdit,
-        assignees = assignees,
-        important = important,
-        messageId = messageId,
-        fullMessage = fullMessage,
-        description = description,
-        priority = priority,
-        userChangeAssignee = userChangeAssignee,
-        organization = organization,
-        shortMessage = shortMessage,
-        externalId = externalId,
-        relatedAssignment = relatedAssignment,
-        meanSource = meanSource,
-        id = id
+fun ChecklistRq.toEntity(): ChecklistTaskEntity {
+    return ChecklistTaskEntity(
+        id = UUID.randomUUID().toString(),
+        taskId = this.taskId,
+        title = this.title,
+        isCompleted = false,
+        createdAt = OffsetDateTime.now(),
+        updatedAt = OffsetDateTime.now()
     )
+}
 
-// Domain to DTO mappers (for requests)
-fun Task.toTaskRq(): TaskRq = TaskRq(
-    lifeAreaId = lifeAreaId,
-    flowId = flowId,
-    payload = payload?.toApiPayload() ?: ru.kolesnik.potok.core.network.model.api.TaskPayload()
-)
-
-fun ru.kolesnik.potok.core.model.TaskPayload.toApiPayload(): ru.kolesnik.potok.core.network.model.api.TaskPayload = 
-    ru.kolesnik.potok.core.network.model.api.TaskPayload(
-        title = title,
-        source = source,
-        onMainPage = onMainPage,
-        deadline = deadline,
-        lifeArea = lifeArea,
-        lifeAreaId = lifeAreaId,
-        subtitle = subtitle,
-        userEdit = userEdit,
-        assignees = assignees,
-        important = important,
-        messageId = messageId,
-        fullMessage = fullMessage,
-        description = description,
-        priority = priority,
-        userChangeAssignee = userChangeAssignee,
-        organization = organization,
-        shortMessage = shortMessage,
-        externalId = externalId,
-        relatedAssignment = relatedAssignment,
-        meanSource = meanSource,
-        id = id
+fun TaskCommentRq.toEntity(): CommentEntity {
+    return CommentEntity(
+        id = UUID.randomUUID().toString(),
+        taskId = this.taskId,
+        text = this.text,
+        authorId = this.authorId ?: "",
+        createdAt = OffsetDateTime.now(),
+        updatedAt = OffsetDateTime.now()
     )
+}
+
+fun EmployeeResponse.toEntity(): Employee {
+    return Employee(
+        id = this.id,
+        name = this.name,
+        email = this.email,
+        avatar = this.avatar
+    )
+}
+
+// Entity to Model mappers
+fun LifeAreaEntity.toModel(): LifeArea {
+    return LifeArea(
+        id = this.id,
+        name = this.name,
+        description = this.description
+    )
+}
+
+fun LifeFlowEntity.toModel(): LifeFlow {
+    return LifeFlow(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        lifeAreaId = this.lifeAreaId,
+        status = this.status
+    )
+}
+
+fun TaskEntity.toModel(): Task {
+    return Task(
+        id = this.id,
+        title = this.title,
+        description = this.description,
+        lifeFlowId = this.lifeFlowId,
+        status = this.status,
+        priority = this.priority,
+        deadline = this.deadline?.toString(),
+        isImportant = this.isImportant,
+        createdAt = this.createdAt.toString(),
+        updatedAt = this.updatedAt.toString(),
+        assigneeIds = this.assigneeIds
+    )
+}
+
+fun ChecklistTaskEntity.toModel(): ChecklistTask {
+    return ChecklistTask(
+        id = this.id,
+        taskId = this.taskId,
+        title = this.title,
+        isCompleted = this.isCompleted,
+        createdAt = this.createdAt.toString(),
+        updatedAt = this.updatedAt.toString()
+    )
+}
+
+fun CommentEntity.toModel(): TaskComment {
+    return TaskComment(
+        id = this.id,
+        taskId = this.taskId,
+        text = this.text,
+        authorId = this.authorId,
+        createdAt = this.createdAt.toString(),
+        updatedAt = this.updatedAt.toString()
+    )
+}
+
+// Network DTO to Model mappers (for search results that don't need to be stored)
+fun TaskRs.toModel(): Task {
+    return Task(
+        id = this.id,
+        title = this.title,
+        description = this.description,
+        lifeFlowId = this.lifeFlowId,
+        status = this.status,
+        priority = this.priority,
+        deadline = this.deadline,
+        isImportant = this.isImportant ?: false,
+        createdAt = this.createdAt ?: "",
+        updatedAt = this.updatedAt ?: "",
+        assigneeIds = this.assigneeIds ?: emptyList()
+    )
+}
+
+fun EmployeeResponse.toModel(): Employee {
+    return Employee(
+        id = this.id,
+        name = this.name,
+        email = this.email,
+        avatar = this.avatar
+    )
+}

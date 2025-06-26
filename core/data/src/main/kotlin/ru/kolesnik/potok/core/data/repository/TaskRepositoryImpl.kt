@@ -2,144 +2,194 @@ package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import ru.kolesnik.potok.core.data.repository.TaskRepository
-import ru.kolesnik.potok.core.data.util.toDomain
-import ru.kolesnik.potok.core.data.util.toEntity
-import ru.kolesnik.potok.core.data.util.toTaskMain
-import ru.kolesnik.potok.core.database.dao.ChecklistTaskDao
-import ru.kolesnik.potok.core.database.dao.TaskAssigneeDao
-import ru.kolesnik.potok.core.database.dao.TaskCommentDao
 import ru.kolesnik.potok.core.database.dao.TaskDao
+import ru.kolesnik.potok.core.database.dao.TaskCommentDao
 import ru.kolesnik.potok.core.model.Task
-import ru.kolesnik.potok.core.model.TaskMain
-import ru.kolesnik.potok.core.network.SyncFullDataSource
-import ru.kolesnik.potok.core.network.model.potok.NetworkCreateTask
-import ru.kolesnik.potok.core.network.model.potok.PatchPayload
-import java.time.OffsetDateTime
-import java.util.UUID
+import ru.kolesnik.potok.core.model.TaskComment
+import ru.kolesnik.potok.core.network.api.TaskApi
+import ru.kolesnik.potok.core.network.api.CommentApi
+import ru.kolesnik.potok.core.network.result.Result
+import ru.kolesnik.potok.core.data.util.toEntity
+import ru.kolesnik.potok.core.data.util.toModel
 import javax.inject.Inject
+import javax.inject.Singleton
 
-internal class TaskRepositoryImpl @Inject constructor(
-    private val syncDataSource: SyncFullDataSource,
+@Singleton
+class TaskRepositoryImpl @Inject constructor(
+    private val taskApi: TaskApi,
+    private val commentApi: CommentApi,
     private val taskDao: TaskDao,
-    private val taskAssigneeDao: TaskAssigneeDao,
-    private val checklistTaskDao: ChecklistTaskDao,
     private val taskCommentDao: TaskCommentDao
 ) : TaskRepository {
 
-    override fun getTaskMainByArea(lifeAreaId: String): Flow<List<TaskMain>> {
-        return taskDao.getByAreaId(UUID.fromString(lifeAreaId)).map { entities ->
-            entities.map { taskEntity ->
-                taskEntity.toTaskMain().copy(
-                    assignees = taskAssigneeDao.getByTaskId(taskEntity.cardId).map { it.toDomain() }
-                )
-            }
+    override fun getTasks(): Flow<List<Task>> {
+        return taskDao.getAllTasks().map { entities ->
+            entities.map { it.toModel() }
         }
     }
 
-    override suspend fun getTaskById(taskId: String): Task? {
-        val taskEntity = taskDao.getByExternalId(taskId) ?: return null
-        
-        val assignees = taskAssigneeDao.getByTaskId(taskEntity.cardId).map { it.toDomain() }
-        val checklist = checklistTaskDao.getByTaskId(taskEntity.cardId).map { it.toDomain() }
-        
-        return taskEntity.toDomain().copy(
-            assignees = assignees,
-            checkList = checklist
-        )
-    }
-
-    override suspend fun createTask(task: Task): Task {
-        val networkTask = NetworkCreateTask(
-            title = task.title,
-            lifeAreaId = task.lifeAreaId?.toString(),
-            flowId = task.flowId?.toString(),
-            payload = task.payload?.let { payload ->
-                ru.kolesnik.potok.core.network.model.potok.NetworkTaskPayload(
-                    title = payload.title,
-                    description = payload.description,
-                    important = payload.important,
-                    assignees = payload.assignees
-                )
-            }
-        )
-        
-        val createdTask = syncDataSource.createTask(networkTask)
-        val taskEntity = createdTask.toEntity().copy(
-            lifeAreaId = task.lifeAreaId,
-            flowId = task.flowId
-        )
-        
-        taskDao.insert(taskEntity)
-        return taskEntity.toDomain()
-    }
-
-    override suspend fun updateAndGetTask(task: Task): Task {
-        val patchPayload = PatchPayload(
-            title = task.title,
-            description = task.payload?.description,
-            important = task.payload?.important,
-            deadline = task.payload?.deadline
-        )
-        
-        task.id?.let { taskId ->
-            syncDataSource.patchTask(taskId, patchPayload)
-        }
-        
-        // Update local database
-        val existingEntity = task.id?.let { taskDao.getByExternalId(it) }
-        if (existingEntity != null) {
-            val updatedEntity = existingEntity.copy(
-                title = task.title,
-                subtitle = task.subtitle,
-                payload = task.payload ?: existingEntity.payload
-            )
-            taskDao.update(updatedEntity)
-            return updatedEntity.toDomain()
-        }
-        
-        return task
-    }
-
-    override suspend fun deleteTask(taskId: String) {
-        taskDao.getByExternalId(taskId)?.let { entity ->
-            taskDao.markAsArchived(entity.cardId, OffsetDateTime.now())
+    override fun getTasksByFlow(flowId: String): Flow<List<Task>> {
+        return taskDao.getTasksByFlow(flowId).map { entities ->
+            entities.map { it.toModel() }
         }
     }
 
-    override suspend fun closeTask(taskId: String, flowId: String) {
-        taskDao.getByExternalId(taskId)?.let { entity ->
-            taskDao.moveToFlow(entity.cardId, UUID.fromString(flowId), 0)
+    override fun getTask(id: String): Flow<Task?> {
+        return taskDao.getTask(id).map { entity ->
+            entity?.toModel()
         }
     }
 
-    override suspend fun syncTasksForArea(lifeAreaId: String) {
-        try {
-            val networkData = syncDataSource.getFull()
-            val tasks = networkData
-                .find { it.id == lifeAreaId }
-                ?.flows
-                ?.flatMap { flow -> 
-                    flow.tasks?.map { task ->
-                        task.toEntity().copy(
-                            lifeAreaId = UUID.fromString(lifeAreaId),
-                            flowId = UUID.fromString(flow.id)
-                        )
-                    } ?: emptyList()
+    override suspend fun syncTasks(): Result<Unit> {
+        return try {
+            when (val result = taskApi.getTasks()) {
+                is Result.Success -> {
+                    val entities = result.data.map { it.toEntity() }
+                    taskDao.insertAll(entities)
+                    Result.Success(Unit)
                 }
-                ?: emptyList()
-            
-            // Clear existing tasks for this area and insert new ones
-            taskDao.deleteByAreaId(UUID.fromString(lifeAreaId))
-            taskDao.insertAll(tasks)
-            
-            // Sync related data (assignees, checklist, etc.)
-            tasks.forEach { taskEntity ->
-                // This would need to be implemented based on the network data structure
-                // For now, we'll skip the detailed sync
+                is Result.Error -> result
             }
         } catch (e: Exception) {
-            println("Failed to sync tasks for area $lifeAreaId: ${e.message}")
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun createTask(
+        title: String,
+        description: String?,
+        lifeFlowId: String,
+        assigneeIds: List<String>,
+        deadline: String?,
+        isImportant: Boolean
+    ): Result<Task> {
+        return try {
+            when (val result = taskApi.createTask(title, description, lifeFlowId, assigneeIds, deadline, isImportant)) {
+                is Result.Success -> {
+                    val entity = result.data.toEntity()
+                    taskDao.insert(entity)
+                    Result.Success(entity.toModel())
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun updateTask(
+        id: String,
+        title: String?,
+        description: String?,
+        assigneeIds: List<String>?,
+        deadline: String?,
+        isImportant: Boolean?
+    ): Result<Task> {
+        return try {
+            when (val result = taskApi.updateTask(id, title, description, assigneeIds, deadline, isImportant)) {
+                is Result.Success -> {
+                    val entity = result.data.toEntity()
+                    taskDao.update(entity)
+                    Result.Success(entity.toModel())
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun deleteTask(id: String): Result<Unit> {
+        return try {
+            when (val result = taskApi.deleteTask(id)) {
+                is Result.Success -> {
+                    taskDao.deleteById(id)
+                    Result.Success(Unit)
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun completeTask(id: String): Result<Task> {
+        return try {
+            when (val result = taskApi.completeTask(id)) {
+                is Result.Success -> {
+                    val entity = result.data.toEntity()
+                    taskDao.update(entity)
+                    Result.Success(entity.toModel())
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun archiveTask(id: String): Result<Unit> {
+        return try {
+            when (val result = taskApi.archiveTask(id)) {
+                is Result.Success -> {
+                    taskDao.deleteById(id)
+                    Result.Success(Unit)
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // Comments
+    override fun getTaskComments(taskId: String): Flow<List<TaskComment>> {
+        return taskCommentDao.getCommentsByTask(taskId).map { entities ->
+            entities.map { it.toModel() }
+        }
+    }
+
+    override suspend fun addComment(taskId: String, text: String): Result<TaskComment> {
+        return try {
+            when (val result = commentApi.addComment(taskId, text)) {
+                is Result.Success -> {
+                    val entity = result.data.toEntity()
+                    taskCommentDao.insert(entity)
+                    Result.Success(entity.toModel())
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun updateComment(commentId: String, text: String): Result<TaskComment> {
+        return try {
+            when (val result = commentApi.updateComment(commentId, text)) {
+                is Result.Success -> {
+                    val entity = result.data.toEntity()
+                    taskCommentDao.update(entity)
+                    Result.Success(entity.toModel())
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    override suspend fun deleteComment(commentId: String): Result<Unit> {
+        return try {
+            when (val result = commentApi.deleteComment(commentId)) {
+                is Result.Success -> {
+                    taskCommentDao.deleteById(commentId)
+                    Result.Success(Unit)
+                }
+                is Result.Error -> result
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
         }
     }
 }
