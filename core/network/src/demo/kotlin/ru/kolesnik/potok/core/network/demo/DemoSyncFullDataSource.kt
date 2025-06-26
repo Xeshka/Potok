@@ -36,12 +36,20 @@ class DemoSyncFullDataSource @Inject constructor(
     @OptIn(ExperimentalSerializationApi::class)
     private suspend inline fun <reified T> getDataFromJsonFile(fileName: String): T =
         withContext(ioDispatcher) {
-            assets.open(fileName).use { inputStream ->
-                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
-                    inputStream.bufferedReader().use(BufferedReader::readText)
-                        .let { networkJson.decodeFromString(it) }
-                } else {
-                    networkJson.decodeFromStream(inputStream)
+            try {
+                assets.open(fileName).use { inputStream ->
+                    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+                        inputStream.bufferedReader().use(BufferedReader::readText)
+                            .let { networkJson.decodeFromString(it) }
+                    } else {
+                        networkJson.decodeFromStream(inputStream)
+                    }
+                }
+            } catch (e: Exception) {
+                // Возвращаем пустой список в случае ошибки
+                when (T::class) {
+                    List::class -> emptyList<Any>() as T
+                    else -> throw e
                 }
             }
         }
@@ -52,56 +60,68 @@ class DemoSyncFullDataSource @Inject constructor(
     }
 
     override suspend fun getFull(): List<NetworkLifeArea> {
-        return getDataFromJsonFile(FULL_DATA_FILE)
+        return try {
+            getDataFromJsonFile(FULL_DATA_FILE)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     override suspend fun gtFullNew(): List<LifeAreaDTO> {
-        return getDataFromJsonFile(FULL_DATA_FILE)
+        return try {
+            getDataFromJsonFile(FULL_DATA_FILE)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     override suspend fun getEmployee(
         employeeNumbers: List<EmployeeId>,
         avatar: Boolean
     ): List<EmployeeResponse> {
-        // Возвращаем заглушечные данные о сотрудниках
-        return listOf(
-            EmployeeResponse(
-                employeeNumber = "449927",
-                timezone = "3",
-                terBank = "ЦА",
-                employeeId = "449927",
-                lastName = "Колесник",
-                firstName = "Никита",
-                middleName = "Сергеевич",
-                position = "Главный инженер по разработке",
-                mainEmail = "NSKolesnik@sberbank.ru",
-                avatar = "/api/service-addressbook/api/v1/addressbook/employee/449927/userphoto.jpeg"
-            ),
-            EmployeeResponse(
-                employeeNumber = "91112408208",
-                timezone = "3",
-                terBank = "ЦА",
-                employeeId = "91112408208",
-                lastName = "Иванов",
-                firstName = "Иван",
-                middleName = "Иванович",
-                position = "Разработчик",
-                mainEmail = "IIIvanov@sberbank.ru",
-                avatar = null
-            ),
-            EmployeeResponse(
-                employeeNumber = "1796367",
-                timezone = "3",
-                terBank = "ЦА",
-                employeeId = "1796367",
-                lastName = "Петров",
-                firstName = "Петр",
-                middleName = "Петрович",
-                position = "Менеджер",
-                mainEmail = "PPPetrov@sberbank.ru",
-                avatar = null
-            )
-        )
+        return try {
+            // Возвращаем заглушечные данные о сотрудниках
+            listOf(
+                EmployeeResponse(
+                    employeeNumber = "449927",
+                    timezone = "3",
+                    terBank = "ЦА",
+                    employeeId = "449927",
+                    lastName = "Колесник",
+                    firstName = "Никита",
+                    middleName = "Сергеевич",
+                    position = "Главный инженер по разработке",
+                    mainEmail = "NSKolesnik@sberbank.ru",
+                    avatar = "/api/service-addressbook/api/v1/addressbook/employee/449927/userphoto.jpeg"
+                ),
+                EmployeeResponse(
+                    employeeNumber = "91112408208",
+                    timezone = "3",
+                    terBank = "ЦА",
+                    employeeId = "91112408208",
+                    lastName = "Иванов",
+                    firstName = "Иван",
+                    middleName = "Иванович",
+                    position = "Разработчик",
+                    mainEmail = "IIIvanov@sberbank.ru",
+                    avatar = null
+                ),
+                EmployeeResponse(
+                    employeeNumber = "1796367",
+                    timezone = "3",
+                    terBank = "ЦА",
+                    employeeId = "1796367",
+                    lastName = "Петров",
+                    firstName = "Петр",
+                    middleName = "Петрович",
+                    position = "Менеджер",
+                    mainEmail = "PPPetrov@sberbank.ru",
+                    avatar = null
+                )
+            ).filter { employeeNumbers.contains(it.employeeId) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     override suspend fun patchTask(taskId: TaskExternalId, task: PatchPayload) {
@@ -110,27 +130,39 @@ class DemoSyncFullDataSource @Inject constructor(
     }
 
     override suspend fun createTask(task: NetworkCreateTask): NetworkTask {
-        // Создаем заглушечную задачу с уникальным ID
-        val taskId = UUID.randomUUID().toString().substring(0, 8)
-        val cardId = UUID.randomUUID()
-        
-        return NetworkTask(
-            id = taskId,
-            title = task.payload.title ?: "Новая задача",
-            taskOwner = "449927", // Текущий пользователь
-            creationDate = java.time.OffsetDateTime.now(),
-            payload = task.payload,
-            cardId = cardId,
-            internalId = System.currentTimeMillis(),
-            lifeAreaId = task.lifeAreaId,
-            flowId = task.flowId,
-            assignees = task.payload.assignees?.map { 
-                ru.kolesnik.potok.core.network.model.api.TaskAssigneeRs(
-                    employeeId = it,
-                    complete = false
-                )
-            }
-        )
+        return try {
+            // Создаем заглушечную задачу с уникальным ID
+            val taskId = UUID.randomUUID().toString().substring(0, 8)
+            val cardId = UUID.randomUUID()
+            
+            NetworkTask(
+                id = taskId,
+                title = task.payload.title ?: "Новая задача",
+                taskOwner = "449927", // Текущий пользователь
+                creationDate = java.time.OffsetDateTime.now(),
+                payload = task.payload,
+                cardId = cardId,
+                internalId = System.currentTimeMillis(),
+                lifeAreaId = task.lifeAreaId,
+                flowId = task.flowId,
+                assignees = task.payload.assignees?.map { 
+                    ru.kolesnik.potok.core.network.model.potok.NetworkTaskAssignee(
+                        employeeId = it,
+                        complete = false
+                    )
+                }
+            )
+        } catch (e: Exception) {
+            // Возвращаем базовую заглушку
+            NetworkTask(
+                id = "demo_task",
+                title = "Demo Task",
+                taskOwner = "449927",
+                creationDate = java.time.OffsetDateTime.now(),
+                payload = task.payload,
+                cardId = UUID.randomUUID()
+            )
+        }
     }
 
     fun getFullLifeAreas(): List<LifeAreaDTO> {

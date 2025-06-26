@@ -26,7 +26,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import ru.kolesnik.potok.core.network.AuthApi
 import ru.kolesnik.potok.core.network.BuildConfig
-import ru.kolesnik.potok.core.network.SyncFullDataSource
 import ru.kolesnik.potok.core.network.cookie.InMemoryCookieStore
 import ru.kolesnik.potok.core.network.cookie.JavaNetCookieJar
 import ru.kolesnik.potok.core.network.model.customSerializersModule
