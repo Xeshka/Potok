@@ -4,14 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import ru.kolesnik.potok.core.data.repository.FlowRepository
-import ru.kolesnik.potok.core.data.repository.FullProjectRepository
-import ru.kolesnik.potok.core.data.repository.LifeAreaRepository
-import ru.kolesnik.potok.core.data.repository.TaskRepository
-import ru.kolesnik.potok.core.datasource.repository.FlowRepositoryImpl
-import ru.kolesnik.potok.core.datasource.repository.FullProjectRepositoryImpl
-import ru.kolesnik.potok.core.datasource.repository.LifeAreaRepositoryImpl
-import ru.kolesnik.potok.core.datasource.repository.TaskRepositoryImpl
+import ru.kolesnik.potok.core.data.repository.*
+import ru.kolesnik.potok.core.network.repository.*
 import javax.inject.Singleton
 
 @Module
@@ -21,24 +15,24 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindLifeAreaRepository(
-        lifeAreaRepositoryImpl: LifeAreaRepositoryImpl
+        impl: LifeAreaRepositoryImpl
     ): LifeAreaRepository
 
     @Binds
     @Singleton
-    abstract fun bindTaskRepository(
-        taskRepositoryImpl: TaskRepositoryImpl
-    ): TaskRepository
-
-    @Binds
-    @Singleton
     abstract fun bindFlowRepository(
-        flowRepositoryImpl: FlowRepositoryImpl
+        impl: FlowRepositoryImpl
     ): FlowRepository
 
     @Binds
     @Singleton
+    abstract fun bindTaskRepository(
+        impl: TaskRepositoryImpl
+    ): TaskRepository
+
+    @Binds
+    @Singleton
     abstract fun bindFullProjectRepository(
-        fullProjectRepositoryImpl: FullProjectRepositoryImpl
+        impl: FullProjectRepositoryImpl
     ): FullProjectRepository
 }

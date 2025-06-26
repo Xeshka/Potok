@@ -3,6 +3,7 @@ package ru.kolesnik.potok.core.data.util
 import ru.kolesnik.potok.core.database.entitys.*
 import ru.kolesnik.potok.core.model.*
 import ru.kolesnik.potok.core.network.model.api.*
+import ru.kolesnik.potok.core.network.model.employee.EmployeeResponse
 import ru.kolesnik.potok.core.network.model.potok.*
 import java.util.UUID
 
@@ -14,7 +15,7 @@ fun LifeAreaDTO.toEntity(): LifeAreaEntity = LifeAreaEntity(
     tagsId = tagsId,
     placement = placement,
     isDefault = isDefault,
-    sharedInfo = sharedInfo?.toModel(),
+    sharedInfo = sharedInfo,
     isTheme = isTheme,
     onlyPersonal = onlyPersonal
 )
@@ -25,12 +26,12 @@ fun LifeFlowDTO.toEntity(): LifeFlowEntity = LifeFlowEntity(
     title = title,
     style = style,
     placement = placement,
-    status = status?.toModel()
+    status = status
 )
 
 fun TaskRs.toEntity(): TaskEntity = TaskEntity(
     cardId = UUID.fromString(id),
-    externalId = payload.externalId,
+    externalId = id,
     internalId = internalId,
     title = title,
     subtitle = subtitle,
@@ -38,14 +39,19 @@ fun TaskRs.toEntity(): TaskEntity = TaskEntity(
     source = source,
     taskOwner = taskOwner,
     creationDate = creationDate,
-    payload = payload.toModel(),
-    lifeAreaId = null, // Will be set separately
+    payload = payload.toModelPayload(),
+    lifeAreaId = payload.lifeAreaId,
     flowId = null, // Will be set separately
     lifeAreaPlacement = lifeAreaPlacement,
     flowPlacement = flowPlacement,
     commentCount = commentCount,
-    attachmentCount = attachmentCount,
-    deletedAt = null
+    attachmentCount = attachmentCount
+)
+
+fun TaskAssigneeRs.toEntity(taskId: UUID): TaskAssigneeEntity = TaskAssigneeEntity(
+    taskCardId = taskId,
+    employeeId = employeeId,
+    complete = complete
 )
 
 fun ChecklistTaskDTO.toEntity(taskId: UUID): ChecklistTaskEntity = ChecklistTaskEntity(
@@ -53,15 +59,9 @@ fun ChecklistTaskDTO.toEntity(taskId: UUID): ChecklistTaskEntity = ChecklistTask
     taskCardId = taskId,
     title = title,
     done = done ?: false,
-    placement = placement,
+    placement = placement ?: 0,
     responsibles = responsibles,
     deadline = deadline
-)
-
-fun TaskAssigneeRs.toEntity(taskId: UUID): TaskAssigneeEntity = TaskAssigneeEntity(
-    taskCardId = taskId,
-    employeeId = employeeId,
-    complete = complete
 )
 
 fun TaskCommentDTO.toEntity(taskId: UUID): TaskCommentEntity = TaskCommentEntity(
@@ -82,23 +82,14 @@ fun NetworkLifeArea.toEntity(): LifeAreaEntity = LifeAreaEntity(
     tagsId = tagsId,
     placement = placement,
     isDefault = isDefault,
-    sharedInfo = sharedInfo?.toModel(),
+    sharedInfo = null, // Convert if needed
     isTheme = isTheme,
     onlyPersonal = onlyPersonal
 )
 
-fun NetworkLifeFlow.toEntity(): LifeFlowEntity = LifeFlowEntity(
-    id = UUID.fromString(id),
-    areaId = UUID.fromString(areaId),
-    title = title,
-    style = style,
-    placement = placement,
-    status = status?.toModel()
-)
-
 fun NetworkTask.toEntity(): TaskEntity = TaskEntity(
     cardId = UUID.fromString(id),
-    externalId = payload?.externalId,
+    externalId = id,
     internalId = internalId,
     title = title,
     subtitle = subtitle,
@@ -106,14 +97,13 @@ fun NetworkTask.toEntity(): TaskEntity = TaskEntity(
     source = source,
     taskOwner = taskOwner,
     creationDate = creationDate,
-    payload = payload?.toModel() ?: TaskPayload(),
-    lifeAreaId = null, // Will be set from context
-    flowId = null, // Will be set from context
+    payload = payload.toModelPayload(),
+    lifeAreaId = lifeAreaId?.let { UUID.fromString(it) },
+    flowId = flowId?.let { UUID.fromString(it) },
     lifeAreaPlacement = lifeAreaPlacement,
     flowPlacement = flowPlacement,
     commentCount = commentCount,
-    attachmentCount = attachmentCount,
-    deletedAt = null
+    attachmentCount = attachmentCount
 )
 
 // Entity to Domain mappers
@@ -125,7 +115,7 @@ fun LifeAreaEntity.toDomain(): LifeArea = LifeArea(
     placement = placement,
     isDefault = isDefault,
     isTheme = isTheme,
-    shared = sharedInfo
+    shared = sharedInfo?.toDomain()
 )
 
 fun LifeFlowEntity.toDomain(): LifeFlow = LifeFlow(
@@ -134,7 +124,7 @@ fun LifeFlowEntity.toDomain(): LifeFlow = LifeFlow(
     title = title,
     style = style,
     placement = placement,
-    status = status ?: FlowStatus.NEW
+    status = status ?: ru.kolesnik.potok.core.model.FlowStatus.NEW
 )
 
 fun TaskEntity.toDomain(): Task = Task(
@@ -163,24 +153,22 @@ fun TaskEntity.toTaskMain(): TaskMain = TaskMain(
     internalId = internalId,
     lifeAreaPlacement = lifeAreaPlacement,
     flowPlacement = flowPlacement,
-    commentCount = commentCount,
-    attachmentCount = attachmentCount,
     lifeAreaId = lifeAreaId,
     flowId = flowId
-)
-
-fun ChecklistTaskEntity.toDomain(): ChecklistTask = ChecklistTask(
-    id = id,
-    title = title,
-    done = done,
-    placement = placement ?: 0,
-    responsibles = responsibles,
-    deadline = deadline
 )
 
 fun TaskAssigneeEntity.toDomain(): TaskAssignee = TaskAssignee(
     employeeId = employeeId,
     complete = complete
+)
+
+fun ChecklistTaskEntity.toDomain(): ChecklistTask = ChecklistTask(
+    id = id,
+    title = title,
+    done = done ?: false,
+    placement = placement ?: 0,
+    responsibles = responsibles ?: emptyList(),
+    deadline = deadline
 )
 
 fun TaskCommentEntity.toDomain(): TaskComment = TaskComment(
@@ -192,22 +180,28 @@ fun TaskCommentEntity.toDomain(): TaskComment = TaskComment(
     updatedAt = updatedAt
 )
 
-// Helper conversion methods
-private fun LifeAreaSharedInfo.toModel(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo = 
+// Helper mappers
+fun EmployeeResponse.toDomain(): Employee = Employee(
+    employeeNumber = employeeNumber,
+    timezone = timezone,
+    terBank = terBank,
+    employeeId = employeeId,
+    lastName = lastName,
+    firstName = firstName,
+    middleName = middleName,
+    position = position,
+    mainEmail = mainEmail,
+    avatar = avatar
+)
+
+fun LifeAreaSharedInfo.toDomain(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo = 
     ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-        areaId = UUID.randomUUID(), // This should be set from context
+        areaId = UUID.randomUUID(), // This should be set properly
         owner = owner,
         recipients = recipients
     )
 
-private fun FlowStatus.toModel(): ru.kolesnik.potok.core.model.FlowStatus = when (this) {
-    FlowStatus.NEW -> ru.kolesnik.potok.core.model.FlowStatus.NEW
-    FlowStatus.IN_PROGRESS -> ru.kolesnik.potok.core.model.FlowStatus.IN_PROGRESS
-    FlowStatus.COMPLETED -> ru.kolesnik.potok.core.model.FlowStatus.COMPLETED
-    FlowStatus.CUSTOM -> ru.kolesnik.potok.core.model.FlowStatus.CUSTOM
-}
-
-private fun TaskPayload.toModel(): ru.kolesnik.potok.core.model.TaskPayload = 
+fun ru.kolesnik.potok.core.network.model.api.TaskPayload.toModelPayload(): ru.kolesnik.potok.core.model.TaskPayload = 
     ru.kolesnik.potok.core.model.TaskPayload(
         title = title,
         source = source,
@@ -232,8 +226,40 @@ private fun TaskPayload.toModel(): ru.kolesnik.potok.core.model.TaskPayload =
         id = id
     )
 
-private fun NetworkTaskPayload.toModel(): ru.kolesnik.potok.core.model.TaskPayload = 
+fun NetworkTaskPayload.toModelPayload(): ru.kolesnik.potok.core.model.TaskPayload = 
     ru.kolesnik.potok.core.model.TaskPayload(
+        title = title,
+        source = source,
+        onMainPage = onMainPage,
+        deadline = deadline,
+        lifeArea = lifeArea,
+        lifeAreaId = lifeAreaId?.let { UUID.fromString(it) },
+        subtitle = subtitle,
+        userEdit = userEdit,
+        assignees = assignees,
+        important = important,
+        messageId = messageId,
+        fullMessage = fullMessage,
+        description = description,
+        priority = priority,
+        userChangeAssignee = userChangeAssignee,
+        organization = organization,
+        shortMessage = shortMessage,
+        externalId = externalId,
+        relatedAssignment = relatedAssignment,
+        meanSource = meanSource,
+        id = id
+    )
+
+// Domain to DTO mappers (for requests)
+fun Task.toTaskRq(): TaskRq = TaskRq(
+    lifeAreaId = lifeAreaId,
+    flowId = flowId,
+    payload = payload?.toApiPayload() ?: ru.kolesnik.potok.core.network.model.api.TaskPayload()
+)
+
+fun ru.kolesnik.potok.core.model.TaskPayload.toApiPayload(): ru.kolesnik.potok.core.network.model.api.TaskPayload = 
+    ru.kolesnik.potok.core.network.model.api.TaskPayload(
         title = title,
         source = source,
         onMainPage = onMainPage,
@@ -255,11 +281,4 @@ private fun NetworkTaskPayload.toModel(): ru.kolesnik.potok.core.model.TaskPaylo
         relatedAssignment = relatedAssignment,
         meanSource = meanSource,
         id = id
-    )
-
-private fun NetworkLifeAreaSharedInfo.toModel(): ru.kolesnik.potok.core.model.LifeAreaSharedInfo = 
-    ru.kolesnik.potok.core.model.LifeAreaSharedInfo(
-        areaId = UUID.randomUUID(), // This should be set from context
-        owner = owner,
-        recipients = recipients
     )
