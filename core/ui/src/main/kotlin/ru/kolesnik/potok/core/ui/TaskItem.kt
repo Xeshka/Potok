@@ -19,6 +19,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -84,7 +84,9 @@ fun TaskItem(
             .clickable { onTaskClick(task.id) },
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(Color(0xFFF8F9FA))
+        colors = CardDefaults.cardColors(
+            containerColor = getTaskCardBackgroundColor()
+        )
     ) {
         Column(
             modifier = Modifier
@@ -100,7 +102,9 @@ fun TaskItem(
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
                         .padding(end = 48.dp),
-                    textDecoration = if (isClose) TextDecoration.LineThrough else TextDecoration.None
+                    textDecoration = if (isClose) TextDecoration.LineThrough else TextDecoration.None,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 IconButton(
@@ -111,7 +115,11 @@ fun TaskItem(
                         .align(Alignment.Top)
                         .offset(y = (-4).dp)
                 ) {
-                    Icon(Icons.Default.MoreVert, "Меню")
+                    Icon(
+                        Icons.Default.MoreVert, 
+                        "Меню",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     DropdownMenu(
                         expanded = expanded,
@@ -119,21 +127,36 @@ fun TaskItem(
                         modifier = Modifier.fillMaxWidth(fraction = 0.5f)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Редактировать") },
+                            text = { 
+                                Text(
+                                    "Редактировать",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ) 
+                            },
                             onClick = {
                                 expanded = false
                                 onTaskClick(task.id)
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Завершить") },
+                            text = { 
+                                Text(
+                                    "Завершить",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ) 
+                            },
                             onClick = {
                                 expanded = false
                                 onCloseClick(task.id, closeFlow)
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Удалить") },
+                            text = { 
+                                Text(
+                                    "Удалить",
+                                    color = getOverdueColor()
+                                ) 
+                            },
                             onClick = {
                                 expanded = false
                                 onDelete(task.id)
@@ -151,21 +174,21 @@ fun TaskItem(
 
             if (showSecondRow) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     if (hasDeadline) {
+                        val isOverdue = task.deadline?.isBefore(OffsetDateTime.now()) == true
                         Text(
                             text = task.deadline
                                 ?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                                 ?.let { formattedDate ->
-                                    if (task.deadline!! <= OffsetDateTime.now()) {
+                                    if (isOverdue) {
                                         "❗$formattedDate❗"
                                     } else {
                                         formattedDate
                                     }
                                 } ?: "",
-                            color = if (task.deadline?.isBefore(OffsetDateTime.now()) == true) Color.Red else Color.Gray,
+                            color = if (isOverdue) getOverdueColor() else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             modifier = Modifier.align(Alignment.CenterStart)
                         )
@@ -177,8 +200,8 @@ fun TaskItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             listOf(
-                                completedCount to Color(0xFF4CAF50),
-                                pendingCount to Color.Gray
+                                completedCount to getStatusColor(true),
+                                pendingCount to getStatusColor(false)
                             ).forEachIndexed { index, (count, color) ->
                                 if (count > 0) {
                                     if (index > 0) Spacer(Modifier.width(6.dp))
@@ -193,7 +216,6 @@ fun TaskItem(
                     }
                 }
             }
-
         }
     }
 }
@@ -202,15 +224,15 @@ enum class CounterType {
     FILES, COMMENTS, EMPLOYEES
 }
 
-@Preview(showBackground = true, name = "Default Task Item")
+@Preview(showBackground = true, name = "Light Theme - Default Task")
 @Composable
-fun TaskItemPreview_Default() {
+fun TaskItemPreview_Light() {
     val mockTask = PreviewData.createMockTask().copy(
         title = "Обычная задача с нормальным заголовком",
         deadline = OffsetDateTime.now().plusDays(3)
     )
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskItem(
             task = mockTask,
             isClose = false,
@@ -222,18 +244,18 @@ fun TaskItemPreview_Default() {
     }
 }
 
-@Preview(showBackground = true, name = "Closed Task")
+@Preview(showBackground = true, name = "Dark Theme - Default Task")
 @Composable
-fun TaskItemPreview_Closed() {
+fun TaskItemPreview_Dark() {
     val mockTask = PreviewData.createMockTask().copy(
-        title = "Завершенная задача",
-        deadline = OffsetDateTime.now().minusDays(5)
+        title = "Обычная задача с нормальным заголовком",
+        deadline = OffsetDateTime.now().plusDays(3)
     )
 
-    AppTheme {
+    AppTheme(darkTheme = true) {
         TaskItem(
             task = mockTask,
-            isClose = true,
+            isClose = false,
             onTaskClick = {},
             onCloseClick = { _, _ -> },
             onDelete = {},
@@ -242,15 +264,15 @@ fun TaskItemPreview_Closed() {
     }
 }
 
-@Preview(showBackground = true, name = "Overdue Task")
+@Preview(showBackground = true, name = "Light Theme - Overdue Task")
 @Composable
-fun TaskItemPreview_Overdue() {
+fun TaskItemPreview_LightOverdue() {
     val mockTask = PreviewData.createMockTask().copy(
         title = "Просроченная задача с очень длинным названием, которое должно обрезаться",
         deadline = OffsetDateTime.now().minusDays(1)
     )
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskItem(
             task = mockTask,
             isClose = false,
@@ -262,20 +284,15 @@ fun TaskItemPreview_Overdue() {
     }
 }
 
-@Preview(showBackground = true, name = "With Many Assignees")
+@Preview(showBackground = true, name = "Dark Theme - Overdue Task")
 @Composable
-fun TaskItemPreview_ManyAssignees() {
+fun TaskItemPreview_DarkOverdue() {
     val mockTask = PreviewData.createMockTask().copy(
-        title = "Задача с множеством исполнителей",
-        assignees = List(5) {
-            TaskAssignee(
-                employeeId = UUID.randomUUID().toString(),
-                complete = it % 2 == 0
-            )
-        }
+        title = "Просроченная задача с очень длинным названием, которое должно обрезаться",
+        deadline = OffsetDateTime.now().minusDays(1)
     )
 
-    AppTheme {
+    AppTheme(darkTheme = true) {
         TaskItem(
             task = mockTask,
             isClose = false,
@@ -284,25 +301,5 @@ fun TaskItemPreview_ManyAssignees() {
             onDelete = {},
             closeFlow = UUID.randomUUID()
         )
-    }
-}
-
-@Preview(showBackground = true, name = "With Menu Open")
-@Composable
-fun TaskItemPreview_MenuOpen() {
-    val mockTask = PreviewData.createMockTask()
-    var expanded by remember { mutableStateOf(true) }
-
-    AppTheme {
-        Box(modifier = Modifier.size(360.dp, 200.dp)) {
-            TaskItem(
-                task = mockTask,
-                isClose = false,
-                onTaskClick = {},
-                onCloseClick = { _, _ -> },
-                onDelete = {},
-                closeFlow = UUID.randomUUID(),
-            )
-        }
     }
 }

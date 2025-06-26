@@ -6,37 +6,32 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import ru.kolesnik.potok.core.analytics.AnalyticsHelper
 import ru.kolesnik.potok.core.analytics.LocalAnalyticsHelper
-import ru.kolesnik.potok.core.designsystem.theme.AppTheme
-import ru.kolesnik.potok.core.ui.LoadingIndicator
-import ru.kolesnik.potok.navigation.AppNavHost
+import ru.kolesnik.potok.core.designsystem.AppTheme
+import ru.kolesnik.potok.ui.AppState
 import javax.inject.Inject
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -49,96 +44,42 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState())
+        var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
 
-        // Обновляем UI состояние
+        // Обновляем состояние UI на основе ViewModel
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect {
-                    uiState = it
-                }
+                viewModel.uiState
+                    .onEach { uiState = it }
+                    .collect()
             }
         }
 
-        // Держим splash screen пока приложение инициализируется
+        // Держим splash screen пока приложение загружается
         splashScreen.setKeepOnScreenCondition {
-            uiState.isLoading
+            when (uiState) {
+                MainActivityUiState.Loading -> true
+                is MainActivityUiState.Success -> false
+            }
         }
 
         enableEdgeToEdge()
 
         setContent {
-            val darkTheme = shouldUseDarkTheme(uiState)
-
-            // Обновляем системные бары
-            DisposableEffect(darkTheme) {
-                enableEdgeToEdge()
-                onDispose {}
-            }
-
-            CompositionLocalProvider(
-                LocalAnalyticsHelper provides analyticsHelper,
-            ) {
+            val windowSizeClass = calculateWindowSizeClass(this)
+            
+            CompositionLocalProvider(LocalAnalyticsHelper provides analyticsHelper) {
                 AppTheme(
-                    darkTheme = darkTheme,
-                    disableDynamicTheming = !uiState.shouldUseDynamicColor(),
+                    darkTheme = shouldUseDarkTheme(uiState),
+                    disableDynamicTheming = shouldDisableDynamicTheming(uiState),
                 ) {
-                    MainActivityContent(
-                        uiState = uiState,
-                        onRetry = viewModel::retry,
-                        onClearError = viewModel::clearError
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainActivityContent(
-    uiState: MainActivityUiState,
-    onRetry: () -> Unit,
-    onClearError: () -> Unit
-) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // Показываем ошибки через Snackbar
-    uiState.error?.let { error ->
-        androidx.compose.runtime.LaunchedEffect(error) {
-            snackbarHostState.showSnackbar(
-                message = error,
-                actionLabel = "Повторить"
-            ).let { result ->
-                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                    onRetry()
-                }
-                onClearError()
-            }
-        }
-    }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onBackground,
-    ) { padding ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            when {
-                uiState.isLoading -> {
-                    LoadingIndicator()
-                }
-                uiState.isInitialized -> {
-                    AppNavHost()
-                }
-                else -> {
-                    // Показываем экран ошибки или повторной инициализации
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Здесь можно добавить UI для ошибки инициализации
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        AppState(
+                            windowSizeClass = windowSizeClass,
+                        )
                     }
                 }
             }
@@ -146,18 +87,30 @@ private fun MainActivityContent(
     }
 }
 
+/**
+ * Возвращает `true`, если следует использовать темную тему.
+ */
 @Composable
 private fun shouldUseDarkTheme(
     uiState: MainActivityUiState,
-): Boolean = when (uiState.userData.darkThemeConfig) {
-    DarkThemeConfig.FOLLOW_SYSTEM -> isSystemInDarkTheme()
-    DarkThemeConfig.LIGHT -> false
-    DarkThemeConfig.DARK -> true
+): Boolean = when (uiState) {
+    MainActivityUiState.Loading -> isSystemInDarkTheme()
+    is MainActivityUiState.Success -> when (uiState.userData.themeBrand) {
+        ThemeBrand.DEFAULT -> uiState.userData.useDarkTheme
+        ThemeBrand.ANDROID -> isSystemInDarkTheme()
+    }
 }
 
-private fun MainActivityUiState.shouldUseDynamicColor(): Boolean {
-    return userData.useDynamicColor
+/**
+ * Возвращает `true`, если следует отключить динамическую тематизацию.
+ */
+@Composable
+private fun shouldDisableDynamicTheming(
+    uiState: MainActivityUiState,
+): Boolean = when (uiState) {
+    MainActivityUiState.Loading -> true
+    is MainActivityUiState.Success -> when (uiState.userData.themeBrand) {
+        ThemeBrand.DEFAULT -> true
+        ThemeBrand.ANDROID -> false
+    }
 }
-
-private val MainActivityUiState.userData: UserData
-    get() = UserData() // Заглушка, в реальном приложении здесь будут настройки пользователя

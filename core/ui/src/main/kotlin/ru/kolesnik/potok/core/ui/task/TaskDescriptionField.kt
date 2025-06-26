@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -12,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,14 +21,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.kolesnik.potok.core.designsystem.AppTheme
-
-private val inputFieldColor = Color(0xFFF8F9FA)
+import ru.kolesnik.potok.core.ui.getInputFieldBackgroundColor
 
 @Composable
 fun TaskDescriptionField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
+    val inputFieldColor = getInputFieldBackgroundColor()
+    
     Column {
         OutlinedTextField(
             value = value,
@@ -37,14 +38,24 @@ fun TaskDescriptionField(
                 .fillMaxWidth()
                 .padding(top = 16.dp)
                 .heightIn(min = 150.dp, max = 400.dp),
-            placeholder = { Text("Описание задачи") },
+            placeholder = { 
+                Text(
+                    "Описание задачи",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ) 
+            },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = inputFieldColor,
                 unfocusedContainerColor = inputFieldColor,
                 disabledContainerColor = inputFieldColor,
                 errorContainerColor = inputFieldColor,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             ),
-            textStyle = TextStyle(fontSize = 16.sp),
+            textStyle = TextStyle(
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
             keyboardOptions = KeyboardOptions.Default.copy(
                 imeAction = ImeAction.Default,
                 keyboardType = KeyboardType.Text
@@ -56,17 +67,21 @@ fun TaskDescriptionField(
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.End,
             fontSize = 12.sp,
-            color = if (value.length > 5000) Color.Red else Color.Gray
+            color = if (value.length > 5000) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }
 
-@Preview(showBackground = true, name = "Empty Description")
+@Preview(showBackground = true, name = "Light Theme - Empty Description")
 @Composable
-fun TaskDescriptionFieldPreview_Empty() {
+fun TaskDescriptionFieldPreview_LightEmpty() {
     val textState = remember { mutableStateOf("") }
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskDescriptionField(
             value = textState.value,
             onValueChange = { textState.value = it }
@@ -74,13 +89,26 @@ fun TaskDescriptionFieldPreview_Empty() {
     }
 }
 
-@Preview(showBackground = true, name = "Filled Description")
+@Preview(showBackground = true, name = "Dark Theme - Empty Description")
 @Composable
-fun TaskDescriptionFieldPreview_Filled() {
-    val loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit...".repeat(20)
+fun TaskDescriptionFieldPreview_DarkEmpty() {
+    val textState = remember { mutableStateOf("") }
+
+    AppTheme(darkTheme = true) {
+        TaskDescriptionField(
+            value = textState.value,
+            onValueChange = { textState.value = it }
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Light Theme - Filled Description")
+@Composable
+fun TaskDescriptionFieldPreview_LightFilled() {
+    val loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
     val textState = remember { mutableStateOf(loremIpsum) }
 
-    AppTheme {
+    AppTheme(darkTheme = false) {
         TaskDescriptionField(
             value = textState.value,
             onValueChange = { textState.value = it }
@@ -88,13 +116,13 @@ fun TaskDescriptionFieldPreview_Filled() {
     }
 }
 
-@Preview(showBackground = true, name = "Overlimit Description")
+@Preview(showBackground = true, name = "Dark Theme - Filled Description")
 @Composable
-fun TaskDescriptionFieldPreview_Overlimit() {
-    val longText = "a".repeat(5001)
-    val textState = remember { mutableStateOf(longText) }
+fun TaskDescriptionFieldPreview_DarkFilled() {
+    val loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    val textState = remember { mutableStateOf(loremIpsum) }
 
-    AppTheme {
+    AppTheme(darkTheme = true) {
         TaskDescriptionField(
             value = textState.value,
             onValueChange = { textState.value = it }

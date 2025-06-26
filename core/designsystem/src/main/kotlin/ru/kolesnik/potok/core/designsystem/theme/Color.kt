@@ -2,65 +2,124 @@ package ru.kolesnik.potok.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-internal val Blue10 = Color(0xFF001F28)
-internal val Blue20 = Color(0xFF003544)
-internal val Blue30 = Color(0xFF004D61)
-internal val Blue40 = Color(0xFF006780)
-internal val Blue80 = Color(0xFF5DD5FC)
-internal val Blue90 = Color(0xFFB8EAFF)
-internal val DarkGreen10 = Color(0xFF0D1F12)
-internal val DarkGreen20 = Color(0xFF223526)
-internal val DarkGreen30 = Color(0xFF394B3C)
-internal val DarkGreen40 = Color(0xFF4F6352)
-internal val DarkGreen80 = Color(0xFFB7CCB8)
-internal val DarkGreen90 = Color(0xFFD3E8D3)
-internal val DarkGreenGray10 = Color(0xFF1A1C1A)
-internal val DarkGreenGray20 = Color(0xFF2F312E)
-internal val DarkGreenGray90 = Color(0xFFE2E3DE)
-internal val DarkGreenGray95 = Color(0xFFF0F1EC)
-internal val DarkGreenGray99 = Color(0xFFFBFDF7)
-internal val DarkPurpleGray10 = Color(0xFF201A1B)
-internal val DarkPurpleGray20 = Color(0xFF362F30)
-internal val DarkPurpleGray90 = Color(0xFFECDFE0)
-internal val DarkPurpleGray95 = Color(0xFFFAEEEF)
-internal val DarkPurpleGray99 = Color(0xFFFCFCFC)
-internal val Green10 = Color(0xFF00210B)
-internal val Green20 = Color(0xFF003919)
-internal val Green30 = Color(0xFF005227)
-internal val Green40 = Color(0xFF006D36)
-internal val Green80 = Color(0xFF0EE37C)
-internal val Green90 = Color(0xFF5AFF9D)
-internal val GreenGray30 = Color(0xFF414941)
-internal val GreenGray50 = Color(0xFF727971)
-internal val GreenGray60 = Color(0xFF8B938A)
-internal val GreenGray80 = Color(0xFFC1C9BF)
-internal val GreenGray90 = Color(0xFFDDE5DB)
-internal val Orange10 = Color(0xFF380D00)
-internal val Orange20 = Color(0xFF5B1A00)
-internal val Orange30 = Color(0xFF812800)
-internal val Orange40 = Color(0xFFA23F16)
-internal val Orange80 = Color(0xFFFFB59B)
-internal val Orange90 = Color(0xFFFFDBCF)
-internal val Purple10 = Color(0xFF36003C)
-internal val Purple20 = Color(0xFF560A5D)
-internal val Purple30 = Color(0xFF702776)
-internal val Purple40 = Color(0xFF8B418F)
-internal val Purple80 = Color(0xFFFFA9FE)
-internal val Purple90 = Color(0xFFFFD6FA)
-internal val PurpleGray30 = Color(0xFF4D444C)
-internal val PurpleGray50 = Color(0xFF7F747C)
-internal val PurpleGray60 = Color(0xFF998D96)
-internal val PurpleGray80 = Color(0xFFD0C3CC)
-internal val PurpleGray90 = Color(0xFFEDDEE8)
-internal val Red10 = Color(0xFF410002)
-internal val Red20 = Color(0xFF690005)
-internal val Red30 = Color(0xFF93000A)
-internal val Red40 = Color(0xFFBA1A1A)
-internal val Red80 = Color(0xFFFFB4AB)
-internal val Red90 = Color(0xFFFFDAD6)
-internal val Teal10 = Color(0xFF001F26)
-internal val Teal20 = Color(0xFF02363F)
-internal val Teal30 = Color(0xFF214D56)
-internal val Teal40 = Color(0xFF3A656F)
-internal val Teal80 = Color(0xFFA2CED9)
-internal val Teal90 = Color(0xFFBEEAF6)
+// Основные цвета приложения
+object AppColors {
+    // Primary colors
+    val Primary40 = Color(0xFF006D36)
+    val Primary80 = Color(0xFF0EE37C)
+    val Primary90 = Color(0xFF5AFF9D)
+    
+    // Secondary colors
+    val Secondary40 = Color(0xFF4F6352)
+    val Secondary80 = Color(0xFFB7CCB8)
+    val Secondary90 = Color(0xFFD3E8D3)
+    
+    // Tertiary colors
+    val Tertiary40 = Color(0xFF3A656F)
+    val Tertiary80 = Color(0xFFA2CED9)
+    val Tertiary90 = Color(0xFFBEEAF6)
+    
+    // Error colors
+    val Error40 = Color(0xFFBA1A1A)
+    val Error80 = Color(0xFFFFB4AB)
+    val Error90 = Color(0xFFFFDAD6)
+    
+    // Neutral colors
+    val Neutral10 = Color(0xFF1A1C1A)
+    val Neutral20 = Color(0xFF2F312E)
+    val Neutral90 = Color(0xFFE2E3DE)
+    val Neutral95 = Color(0xFFF0F1EC)
+    val Neutral99 = Color(0xFFFBFDF7)
+    
+    // Neutral variant colors
+    val NeutralVariant30 = Color(0xFF414941)
+    val NeutralVariant50 = Color(0xFF727971)
+    val NeutralVariant60 = Color(0xFF8B938A)
+    val NeutralVariant80 = Color(0xFFC1C9BF)
+    val NeutralVariant90 = Color(0xFFDDE5DB)
+    
+    // Surface colors
+    val Surface = Color(0xFFFBFDF7)
+    val SurfaceDim = Color(0xFFDBDDD7)
+    val SurfaceBright = Color(0xFFFBFDF7)
+    val SurfaceContainerLowest = Color(0xFFFFFFFF)
+    val SurfaceContainerLow = Color(0xFFF5F7F1)
+    val SurfaceContainer = Color(0xFFEFEFEA)
+    val SurfaceContainerHigh = Color(0xFFE9EBE5)
+    val SurfaceContainerHighest = Color(0xFFE3E5DF)
+    
+    // Dark surface colors
+    val SurfaceDark = Color(0xFF111311)
+    val SurfaceDimDark = Color(0xFF111311)
+    val SurfaceBrightDark = Color(0xFF373937)
+    val SurfaceContainerLowestDark = Color(0xFF0C0E0C)
+    val SurfaceContainerLowDark = Color(0xFF191C19)
+    val SurfaceContainerDark = Color(0xFF1D201D)
+    val SurfaceContainerHighDark = Color(0xFF272B27)
+    val SurfaceContainerHighestDark = Color(0xFF323532)
+    
+    // Outline colors
+    val Outline = Color(0xFF727971)
+    val OutlineVariant = Color(0xFFC1C9BF)
+    val OutlineDark = Color(0xFF8B938A)
+    val OutlineVariantDark = Color(0xFF414941)
+    
+    // Inverse colors
+    val InverseSurface = Color(0xFF2F322E)
+    val InverseOnSurface = Color(0xFFE2E3DE)
+    val InversePrimary = Color(0xFF0EE37C)
+    
+    // Scrim
+    val Scrim = Color(0xFF000000)
+}
+
+// Дополнительные цвета для UI компонентов
+object ComponentColors {
+    val TaskCardBackground = Color(0xFFF8F9FA)
+    val TaskCardBackgroundDark = Color(0xFF1E1E1E)
+    
+    val InputFieldBackground = Color(0xFFF8F9FA)
+    val InputFieldBackgroundDark = Color(0xFF2A2A2A)
+    
+    val DividerLight = Color(0xFFE0E0E0)
+    val DividerDark = Color(0xFF3A3A3A)
+    
+    val SuccessGreen = Color(0xFF4CAF50)
+    val WarningOrange = Color(0xFFFF9800)
+    val ErrorRed = Color(0xFFF44336)
+    val InfoBlue = Color(0xFF2196F3)
+}
+
+// Цвета для статусов задач
+object StatusColors {
+    val CompletedGreen = Color(0xFF4CAF50)
+    val PendingGray = Color(0xFF9E9E9E)
+    val OverdueRed = Color(0xFFF44336)
+    val ImportantOrange = Color(0xFFFF9800)
+}
+
+// Цвета для стилей областей жизни
+object LifeAreaColors {
+    val Style1 = Color(0xFF89CFF0) // Голубой
+    val Style2 = Color(0xFFFF6B6B) // Красный
+    val Style3 = Color(0xFF4ECDC4) // Бирюзовый
+    val Style4 = Color(0xFFFFE66D) // Желтый
+    val Style5 = Color(0xFFFF8B94) // Розовый
+    val Style6 = Color(0xFFA8E6CF) // Зеленый
+    val Style7 = Color(0xFFB4A7D6) // Фиолетовый
+    val Style8 = Color(0xFFD4A574) // Оранжевый
+    
+    fun getColorByStyle(styleName: String?): Color {
+        return when (styleName) {
+            "style1" -> Style1
+            "style2" -> Style2
+            "style3" -> Style3
+            "style4" -> Style4
+            "style5" -> Style5
+            "style6" -> Style6
+            "style7" -> Style7
+            "style8" -> Style8
+            else -> Style1
+        }
+    }
+}

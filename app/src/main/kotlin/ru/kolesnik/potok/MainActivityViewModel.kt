@@ -3,89 +3,43 @@ package ru.kolesnik.potok
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import ru.kolesnik.potok.core.analytics.AnalyticsHelper
-import ru.kolesnik.potok.core.data.repository.SyncRepository
-import ru.kolesnik.potok.core.network.result.Result
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 @HiltViewModel
-class MainActivityViewModel @Inject constructor(
-    private val syncRepository: SyncRepository,
-    private val analyticsHelper: AnalyticsHelper
-) : ViewModel() {
+class MainActivityViewModel @Inject constructor() : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MainActivityUiState())
-    val uiState: StateFlow<MainActivityUiState> = _uiState.asStateFlow()
-
-    init {
-        initializeApp()
-    }
-
-    private fun initializeApp() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            try {
-                // Выполняем начальную синхронизацию данных
-                when (val result = syncRepository.syncAll()) {
-                    is Result.Success -> {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            isInitialized = true
-                        )
-                    }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "Ошибка инициализации: ${result.exception.message}"
-                        )
-                    }
-                    is Result.Loading -> {
-                        // Уже показываем загрузку
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Ошибка инициализации: ${e.message}"
-                )
-            }
-        }
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    fun retry() {
-        initializeApp()
-    }
+    val uiState: StateFlow<MainActivityUiState> = 
+        // Пока что используем статичные данные, позже можно подключить DataStore
+        flowOf(
+            UserData(
+                themeBrand = ThemeBrand.DEFAULT,
+                useDarkTheme = false,
+                useDynamicColor = false
+            )
+        ).map(MainActivityUiState::Success)
+            .stateIn(
+                scope = viewModelScope,
+                initialValue = MainActivityUiState.Loading,
+                started = SharingStarted.WhileSubscribed(5_000),
+            )
 }
 
-data class MainActivityUiState(
-    val isLoading: Boolean = false,
-    val isInitialized: Boolean = false,
-    val error: String? = null
-)
+sealed interface MainActivityUiState {
+    data object Loading : MainActivityUiState
+    data class Success(val userData: UserData) : MainActivityUiState
+}
 
 data class UserData(
-    val themeBrand: ThemeBrand = ThemeBrand.DEFAULT,
-    val darkThemeConfig: DarkThemeConfig = DarkThemeConfig.FOLLOW_SYSTEM,
-    val useDynamicColor: Boolean = false,
-    val shouldHideOnboarding: Boolean = false,
+    val themeBrand: ThemeBrand,
+    val useDarkTheme: Boolean,
+    val useDynamicColor: Boolean,
 )
 
 enum class ThemeBrand {
-    DEFAULT,
-    ANDROID
-}
-
-enum class DarkThemeConfig {
-    FOLLOW_SYSTEM,
-    LIGHT,
-    DARK
+    DEFAULT, ANDROID
 }
