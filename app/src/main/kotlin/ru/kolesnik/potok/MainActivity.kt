@@ -8,10 +8,13 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
@@ -22,7 +25,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import ru.kolesnik.potok.core.analytics.AnalyticsHelper
-import ru.kolesnik.potok.core.analytics.LocalAnalyticsHelper
 import ru.kolesnik.potok.core.designsystem.theme.AppTheme
 import ru.kolesnik.potok.navigation.AppNavHost
 import ru.kolesnik.potok.ui.AppState
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainActivityViewModel by viewModels()
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -54,19 +57,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val appState = rememberAppState()
-            val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
-
+            val windowSizeClass = calculateWindowSizeClass(this)
+            
             AppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
-                    AppContent(
-                        appState = appState,
-                        windowSizeClass = windowSizeClass
-                    )
-                }
+                AppContent(
+                    windowSizeClass = windowSizeClass,
+                    onShowSnackbar = { message, action ->
+                        // Здесь можно добавить логику показа Snackbar
+                        // Возвращаем false как заглушку
+                        false
+                    }
+                )
             }
         }
     }
@@ -74,12 +75,22 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppContent(
-    appState: AppState,
-    windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass,
+    windowSizeClass: WindowSizeClass,
+    onShowSnackbar: suspend (message: String, action: String?) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
-    AppNavHost(
-        appState = appState,
-        modifier = modifier,
+    val appState = rememberAppState(
+        windowSizeClass = windowSizeClass,
     )
+
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        AppNavHost(
+            appState = appState,
+            onShowSnackbar = onShowSnackbar,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
 }
