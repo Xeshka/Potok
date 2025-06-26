@@ -2,55 +2,64 @@ package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import ru.kolesnik.potok.core.data.util.toDomain
-import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.database.dao.LifeAreaDao
+import ru.kolesnik.potok.core.database.dao.LifeFlowDao
+import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.model.LifeArea
 import ru.kolesnik.potok.core.network.api.LifeAreaApi
 import ru.kolesnik.potok.core.network.model.api.LifeAreaRq
-import ru.kolesnik.potok.core.network.repository.LifeAreaRepository
+import ru.kolesnik.potok.core.data.util.toEntity
+import ru.kolesnik.potok.core.data.util.toDomain
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface LifeAreaRepository {
+    fun getLifeAreas(): Flow<List<LifeArea>>
+    suspend fun createLifeArea(request: LifeAreaRq): UUID
+    suspend fun updateLifeArea(id: UUID, request: LifeAreaRq)
+    suspend fun deleteLifeArea(id: UUID)
+    suspend fun syncLifeAreas()
+}
+
 @Singleton
 class LifeAreaRepositoryImpl @Inject constructor(
     private val api: LifeAreaApi,
-    private val dao: LifeAreaDao
+    private val lifeAreaDao: LifeAreaDao,
+    private val lifeFlowDao: LifeFlowDao,
+    private val taskDao: TaskDao
 ) : LifeAreaRepository {
 
     override fun getLifeAreas(): Flow<List<LifeArea>> {
-        return dao.getAll().map { entities ->
+        return lifeAreaDao.getAll().map { entities ->
             entities.map { it.toDomain() }
-        }
-    }
-
-    override suspend fun syncLifeAreas() {
-        try {
-            val areas = api.getFullLifeAreas()
-            val entities = areas.map { it.toEntity() }
-            dao.deleteAll()
-            dao.insertAll(entities)
-        } catch (e: Exception) {
-            // Handle error - maybe log it
-            throw e
         }
     }
 
     override suspend fun createLifeArea(request: LifeAreaRq): UUID {
         val response = api.createLifeArea(request)
         val entity = response.toEntity()
-        dao.insert(entity)
+        lifeAreaDao.insert(entity)
         return entity.id
     }
 
     override suspend fun updateLifeArea(id: UUID, request: LifeAreaRq) {
         val updated = api.updateLifeArea(id, request)
-        dao.update(updated.toEntity())
+        lifeAreaDao.update(updated.toEntity())
     }
 
     override suspend fun deleteLifeArea(id: UUID) {
         api.deleteLifeArea(id)
-        dao.getById(id)?.let { dao.delete(it) }
+        // Каскадное удаление связанных данных
+        lifeFlowDao.deleteByAreaId(id)
+        taskDao.deleteByAreaId(id)
+        lifeAreaDao.getById(id)?.let { lifeAreaDao.delete(it) }
+    }
+
+    override suspend fun syncLifeAreas() {
+        val areas = api.getFullLifeAreas()
+        val entities = areas.map { it.toEntity() }
+        lifeAreaDao.deleteAll()
+        lifeAreaDao.insertAll(entities)
     }
 }
