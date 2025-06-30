@@ -19,6 +19,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody
 import okhttp3.Route
+import okhttp3.logging.HttpLoggingInterceptor
 import okio.Buffer
 import org.json.JSONArray
 import org.json.JSONException
@@ -42,37 +43,41 @@ import javax.inject.Singleton
 
 private const val BASE_URL = BuildConfig.BACKEND_URL
 
-class AuthAuthenticator @Inject constructor(
-    private val authDataSource: dagger.Lazy<AuthDataSource>
+class AuthAuthenticator(
+    private val apiProvider: dagger.Lazy<AuthDataSource>
 ) : Authenticator {
-    private val refreshing = AtomicBoolean(false)
+    private var attemptCount = 0
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        if (response.request.url.toString().contains("/auth")) {
-            return null
-        }
-
-        if (refreshing.compareAndSet(false, true)) {
-            return try {
-                Log.d("Auth", "Refreshing authentication...")
-
-                runBlocking {
-                    authDataSource.get().auth()
+        when (response.code) {
+            401, 403 -> {
+                if (attemptCount >= 3) {
+                    Log.e("Auth", "Too many auth attempts")
+                    return null
                 }
+                attemptCount++
+                try {
+                    runBlocking {
+                        apiProvider.get().auth()
+                    }
+                    return response.request.newBuilder()
+                        .removeHeader("Cookie")
+                        .build()
+                } catch (e: Exception) {
+                    Log.e("Auth", "Authentication failed", e)
+                    return null
+                }
+            }
 
-                // После аутентификации создаем полностью новый запрос
-                response.request.newBuilder()
-                    .removeHeader("Cookie") // Важно: очищаем старые куки
-                    .removeHeader("Authorization")
-                    .build()
-            } catch (e: Exception) {
-                Log.e("Auth", "Refresh failed", e)
-                null
-            } finally {
-                refreshing.set(false)
+            502, 503 -> {
+                throw Exception("AUTH_SERVER_OFF: ${response.code}")
+            }
+
+            else -> {
+                attemptCount = 0
+                throw Exception("ERROR: ${response.code}")
             }
         }
-        return null
     }
 }
 
@@ -155,7 +160,7 @@ internal object NetworkModule {
             .writeTimeout(Duration.ofMinutes(1))
             .cookieJar(JavaNetCookieJar(cookieManager))
             .sslSocketFactory(sslFactory.sslSocketFactory, sslFactory.trustManager.get())
-            .addInterceptor(LoggingInterceptor())
+            .addInterceptor(HttpLoggingInterceptor().apply { setLevel(HttpLoggingInterceptor.Level.BODY) })
             .build()
     }
 
