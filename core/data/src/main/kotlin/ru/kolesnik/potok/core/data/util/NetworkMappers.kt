@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.data.util
 
 import ru.kolesnik.potok.core.database.entitys.*
+import ru.kolesnik.potok.core.database.entitys.TaskPayload
 import ru.kolesnik.potok.core.network.model.api.*
 import java.util.UUID
 
@@ -36,7 +37,7 @@ fun LifeFlowDTO.toEntity(): LifeFlowEntity {
     )
 }
 
-fun TaskRs.toEntity(): TaskEntity {
+fun TaskRs.toEntity(lifeAreaId: UUID, flowId: UUID): TaskEntity {
     return TaskEntity(
         cardId = this.cardId,
         externalId = this.id,
@@ -48,7 +49,7 @@ fun TaskRs.toEntity(): TaskEntity {
         taskOwner = this.taskOwner,
         creationDate = this.creationDate,
         payload = this.payload.let { 
-            ru.kolesnik.potok.core.model.TaskPayload(
+            TaskPayload(
                 title = it.title,
                 source = it.source,
                 onMainPage = it.onMainPage,
@@ -72,8 +73,8 @@ fun TaskRs.toEntity(): TaskEntity {
                 id = it.id
             )
         },
-        lifeAreaId = this.payload.lifeAreaId,
-        flowId = null,
+        lifeAreaId = lifeAreaId,
+        flowId = flowId,
         lifeAreaPlacement = this.lifeAreaPlacement,
         flowPlacement = this.flowPlacement,
         commentCount = this.commentCount,

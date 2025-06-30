@@ -2,6 +2,7 @@ package ru.kolesnik.potok.core.data.util
 
 import ru.kolesnik.potok.core.database.entitys.*
 import ru.kolesnik.potok.core.model.*
+import ru.kolesnik.potok.core.model.TaskPayload
 
 // Entity -> Model mappers
 fun LifeAreaEntity.toModel(): LifeArea {
@@ -43,7 +44,7 @@ fun TaskEntity.toModel(): Task {
         source = this.source,
         taskOwner = this.taskOwner,
         creationDate = this.creationDate,
-        payload = this.payload,
+        payload = this.payload?.toModel(),
         internalId = this.internalId,
         lifeAreaPlacement = this.lifeAreaPlacement,
         flowPlacement = this.flowPlacement,
@@ -62,7 +63,7 @@ fun TaskEntity.toTaskMain(): TaskMain {
         source = this.source,
         taskOwner = this.taskOwner,
         creationDate = this.creationDate,
-        deadline = this.payload.deadline,
+        deadline = this.payload?.deadline,
         internalId = this.internalId,
         lifeAreaPlacement = this.lifeAreaPlacement,
         flowPlacement = this.flowPlacement,
@@ -100,5 +101,57 @@ fun TaskAssigneeEntity.toModel(): TaskAssignee {
     return TaskAssignee(
         employeeId = this.employeeId,
         complete = this.complete
+    )
+}
+
+fun TaskPayload.toEntity(): ru.kolesnik.potok.core.database.entitys.TaskPayload {
+    return ru.kolesnik.potok.core.database.entitys.TaskPayload(
+        title = this.title ?: "", // Преобразуем null в пустую строку (или другое дефолтное значение)
+        source = this.source,
+        onMainPage = this.onMainPage ?: false, // Дефолтное значение для Boolean
+        deadline = this.deadline,
+        lifeArea = this.lifeArea,
+        lifeAreaId = this.lifeAreaId,
+        subtitle = this.subtitle,
+        userEdit = this.userEdit,
+        assignees = this.assignees,
+        important = this.important,
+        messageId = this.messageId,
+        fullMessage = this.fullMessage,
+        description = this.description,
+        priority = this.priority,
+        userChangeAssignee = this.userChangeAssignee,
+        organization = this.organization,
+        shortMessage = this.shortMessage,
+        externalId = this.externalId,
+        relatedAssignment = this.relatedAssignment,
+        meanSource = this.meanSource,
+        id = this.id
+    )
+}
+
+fun ru.kolesnik.potok.core.database.entitys.TaskPayload.toModel(): TaskPayload {
+    return TaskPayload(
+        title = this.title,
+        source = this.source,
+        onMainPage = this.onMainPage,
+        deadline = this.deadline,
+        lifeArea = this.lifeArea,
+        lifeAreaId = this.lifeAreaId,
+        subtitle = this.subtitle,
+        userEdit = this.userEdit,
+        assignees = this.assignees,
+        important = this.important,
+        messageId = this.messageId,
+        fullMessage = this.fullMessage,
+        description = this.description,
+        priority = this.priority,
+        userChangeAssignee = this.userChangeAssignee,
+        organization = this.organization,
+        shortMessage = this.shortMessage,
+        externalId = this.externalId,
+        relatedAssignment = this.relatedAssignment,
+        meanSource = this.meanSource,
+        id = this.id
     )
 }

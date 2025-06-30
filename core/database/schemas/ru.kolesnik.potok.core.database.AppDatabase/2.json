@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "115710c16959ca3f260519296ee521ff",
+    "identityHash": "30a334631c023a775b940fad7c925c26",
     "entities": [
       {
         "tableName": "life_areas",
@@ -136,7 +136,7 @@
       },
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `externalId` TEXT, `internalId` INTEGER, `title` TEXT NOT NULL, `subtitle` TEXT, `mainOrder` INTEGER, `source` TEXT, `taskOwner` TEXT NOT NULL, `creationDate` TEXT NOT NULL, `payload` TEXT NOT NULL, `lifeAreaId` TEXT, `flowId` TEXT, `lifeAreaPlacement` INTEGER, `flowPlacement` INTEGER, `commentCount` INTEGER, `attachmentCount` INTEGER, `deletedAt` TEXT, PRIMARY KEY(`cardId`), FOREIGN KEY(`lifeAreaId`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`flowId`) REFERENCES `life_flows`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `externalId` TEXT, `internalId` INTEGER, `title` TEXT NOT NULL, `subtitle` TEXT, `mainOrder` INTEGER, `source` TEXT, `taskOwner` TEXT NOT NULL, `creationDate` TEXT NOT NULL, `payload` TEXT, `lifeAreaId` TEXT, `flowId` TEXT, `lifeAreaPlacement` INTEGER, `flowPlacement` INTEGER, `commentCount` INTEGER, `attachmentCount` INTEGER, `deletedAt` TEXT, PRIMARY KEY(`cardId`), FOREIGN KEY(`lifeAreaId`) REFERENCES `life_areas`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`flowId`) REFERENCES `life_flows`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "cardId",
@@ -196,7 +196,7 @@
             "fieldPath": "payload",
             "columnName": "payload",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": false
           },
           {
             "fieldPath": "lifeAreaId",
@@ -446,7 +446,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '115710c16959ca3f260519296ee521ff')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '30a334631c023a775b940fad7c925c26')"
     ]
   }
 }

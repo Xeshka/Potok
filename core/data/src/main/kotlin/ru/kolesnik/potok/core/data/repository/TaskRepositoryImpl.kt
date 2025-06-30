@@ -1,6 +1,7 @@
 package ru.kolesnik.potok.core.data.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import ru.kolesnik.potok.core.database.dao.TaskDao
 import ru.kolesnik.potok.core.database.dao.TaskCommentDao
@@ -13,16 +14,24 @@ import ru.kolesnik.potok.core.network.result.Result
 import ru.kolesnik.potok.core.data.util.toEntity
 import ru.kolesnik.potok.core.data.util.toModel
 import ru.kolesnik.potok.core.data.util.toTaskMain
+import ru.kolesnik.potok.core.database.dao.LifeAreaDao
+import ru.kolesnik.potok.core.database.dao.LifeFlowDao
 import ru.kolesnik.potok.core.network.datasource.impl.RetrofitCommentDataSource
 import ru.kolesnik.potok.core.network.datasource.impl.RetrofitTaskDataSource
+import ru.kolesnik.potok.core.network.model.LifeAreaId
+import ru.kolesnik.potok.core.network.model.api.FlowPositionRq
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TaskRepositoryImpl @Inject constructor(
+
     private val taskApi: RetrofitTaskDataSource,
     private val commentApi: RetrofitCommentDataSource,
     private val taskDao: TaskDao,
+    private val lifeAreaDao: LifeAreaDao,
+    private val lifeFlowDao: LifeFlowDao,
     private val taskCommentDao: TaskCommentDao,
     private val taskAssigneeDao: TaskAssigneeDao
 ) : TaskRepository {
@@ -66,6 +75,7 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun createTask(
         title: String,
         description: String?,
+        lifeAreaId: LifeAreaId?,
         lifeFlowId: String,
         assigneeIds: List<String>,
         deadline: String?,
@@ -84,9 +94,17 @@ class TaskRepositoryImpl @Inject constructor(
                 payload = payload
             )
             val result = taskApi.createTask(request)
-            val entity = result.toEntity()
+
+            val lifeArea =
+                lifeAreaId?.let { UUID.fromString(it) } ?: lifeAreaDao.getAllLifeAreas().first()
+                    .first { it.placement == 1 }.id
+            val lifeFlow =
+                lifeAreaId?.let { UUID.fromString(it) } ?: lifeFlowDao.getByAreaIdFlow(lifeArea)
+                    .first().first { it.placement == 1 }.id
+
+            val entity = result.toEntity(lifeArea, lifeFlow)
             taskDao.insert(entity)
-            
+
             // Сохраняем назначенных
             assigneeIds.forEach { assigneeId ->
                 val assigneeEntity = ru.kolesnik.potok.core.database.entitys.TaskAssigneeEntity(
@@ -96,7 +114,7 @@ class TaskRepositoryImpl @Inject constructor(
                 )
                 taskAssigneeDao.insert(assigneeEntity)
             }
-            
+
             Result.Success(entity.toModel())
         } catch (e: Exception) {
             Result.Error(e)
@@ -120,15 +138,15 @@ class TaskRepositoryImpl @Inject constructor(
                 deadline = deadline?.let { java.time.OffsetDateTime.parse(it) }
             )
             taskApi.updateTask(id, payload)
-            
+
             // Обновляем локальную базу
             val entity = taskDao.getByExternalId(id)
             entity?.let {
                 val updatedEntity = it.copy(
                     title = title ?: it.title,
-                    payload = it.payload.copy(
-                        description = description ?: it.payload.description,
-                        important = isImportant ?: it.payload.important
+                    payload = it.payload?.copy(
+                        description = description ?: it.payload?.description,
+                        important = isImportant ?: it.payload?.important
                     )
                 )
                 taskDao.update(updatedEntity)
@@ -151,10 +169,19 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun completeTask(id: String): Result<Task> {
         return try {
-            val result = taskApi.getTaskDetails(id)
-            val entity = result.toEntity()
-            taskDao.update(entity)
-            Result.Success(entity.toModel())
+            val task = taskDao.getByExternalId(id)
+            val result = if (task != null) {
+                val flow = lifeFlowDao.getLifeFlowsByArea(task.lifeAreaId!!.toString()).first()
+                    .sortedBy { it.placement }.last().id
+                taskApi.moveTaskToFlow(id, FlowPositionRq(flow, 0))
+                val result = taskApi.getTaskDetails(id)
+
+                val entity = result.toEntity(task.lifeAreaId!!, flow)
+                taskDao.update(entity)
+                entity
+            } else throw Exception("NotComplete")
+            Result.Success(result.toModel())
+
         } catch (e: Exception) {
             Result.Error(e)
         }

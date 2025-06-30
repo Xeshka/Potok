@@ -102,6 +102,7 @@ fun TaskDetailScreen(
                             },
                             important = state.task?.payload?.important ?: false
                         ) ?: TaskPayload(
+                            title = titleState.value,
                             description = descriptionState.value,
                             important = false
                         )

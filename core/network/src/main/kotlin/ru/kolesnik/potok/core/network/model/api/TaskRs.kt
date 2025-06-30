@@ -19,7 +19,7 @@ data class TaskAssigneeRs(
 
 @Serializable
 data class TaskPayload(
-    val title: String? = null,
+    val title: String,
     val source: String? = null,
     val onMainPage: Boolean? = null,
     @Contextual val deadline: OffsetDateTime? = null,

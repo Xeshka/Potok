@@ -94,6 +94,7 @@ class LifeAreaViewModel @Inject constructor(
             when (val result = taskRepository.createTask(
                 title = task.title,
                 description = task.payload?.description,
+                lifeAreaId = task.lifeAreaId.toString(),
                 lifeFlowId = task.flowId.toString(),
                 assigneeIds = task.payload?.assignees ?: emptyList(),
                 deadline = task.payload?.deadline?.toString(),

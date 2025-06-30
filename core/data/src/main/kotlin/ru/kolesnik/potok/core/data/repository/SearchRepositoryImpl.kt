@@ -25,6 +25,7 @@ class SearchRepositoryImpl @Inject constructor(
                     title = taskResult.title,
                     taskOwner = "", // Нужно получить из другого источника
                     payload = ru.kolesnik.potok.core.model.TaskPayload(
+                        title = taskResult.title,
                         description = taskResult.description
                     )
                 )

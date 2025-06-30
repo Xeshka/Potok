@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.app.android.library.jacoco)
     alias(libs.plugins.app.android.room)
     alias(libs.plugins.app.hilt)
+    id("kotlinx-serialization")
 }
 
 android {

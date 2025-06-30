@@ -13,6 +13,7 @@ interface TaskRepository {
     suspend fun createTask(
         title: String,
         description: String?,
+        lifeAreaId: String?,
         lifeFlowId: String,
         assigneeIds: List<String> = emptyList(),
         deadline: String? = null,

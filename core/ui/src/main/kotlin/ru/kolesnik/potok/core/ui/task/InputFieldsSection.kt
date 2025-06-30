@@ -101,6 +101,7 @@ fun InputFieldsSectionPreview_EditTask() {
         id = UUID.randomUUID().toString(),
         taskOwner = UUID.randomUUID().toString(),
         payload = TaskPayload(
+            title = "Важная задача",
             important = true,
             description = "Необходимо выполнить срочное задание",
         )
